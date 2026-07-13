@@ -51,6 +51,7 @@ class Deadline(db.Model):
     output_mong_muon = db.Column(db.Text, nullable=True) # Required if Tu_dat
     link_tai_lieu = db.Column(db.String(500), nullable=True)
     so_lan_gia_han = db.Column(db.Integer, default=0)
+    ngay_nhac_cuoi = db.Column(db.Date, nullable=True)
 
     # Relationships
     output_tu_hoc = db.relationship('OutputTuHoc', backref='deadline', uselist=False, cascade='all, delete-orphan')
@@ -74,20 +75,19 @@ class Deadline(db.Model):
             'ma_bai_tap': self.ma_bai_tap,
             'ma_mon': self.ma_mon,
             'ten_mon': self.mon_hoc.ten_mon if self.mon_hoc else '',
-            'loai_mon': self.mon_hoc.loai_mon if self.mon_hoc else 'Truong',
             'ten_bai_tap': self.ten_bai_tap,
             'loai_bai': self.loai_bai,
             'ngay_giao': self.ngay_giao.strftime('%Y-%m-%d') if self.ngay_giao else None,
-            'han_nop': self.han_nop.strftime('%Y-%m-%d') if self.han_nop else None,
+            'han_nop': self.han_nop.strftime('%Y-%m-%d'),
             'trang_thai': current_status,
             'phan_tram_hoan_thanh': self.phan_tram_hoan_thanh,
             'do_uu_tien': self.do_uu_tien,
             'nguoi_dat_han': self.nguoi_dat_han,
             'output_mong_muon': self.output_mong_muon,
             'link_tai_lieu': self.link_tai_lieu,
-            'so_ngay_con_lai': self.so_ngay_con_lai,
             'so_lan_gia_han': self.so_lan_gia_han,
-            'output_tu_hoc': self.output_tu_hoc.to_dict() if self.output_tu_hoc else None
+            'so_ngay_con_lai': self.so_ngay_con_lai,
+            'ngay_nhac_cuoi': self.ngay_nhac_cuoi.strftime('%Y-%m-%d') if self.ngay_nhac_cuoi else None
         }
 
 
@@ -107,7 +107,7 @@ class OutputTuHoc(db.Model):
             'ma_bai_tap': self.ma_bai_tap,
             'tieu_chi_hoan_thanh': self.tieu_chi_hoan_thanh,
             'ket_qua_dat_duoc': self.ket_qua_dat_duoc,
-            'ngay_cap_nhat': self.ngay_cap_nhat.strftime('%Y-%m-%d') if self.ngay_cap_nhat else None,
+            'ngay_cap_nhat': self.ngay_cap_nhat.strftime('%Y-%m-%d'),
             'tu_danh_gia': self.tu_danh_gia
         }
 
@@ -123,9 +123,13 @@ class LichSuGiaHan(db.Model):
     ly_do = db.Column(db.Text, nullable=True)
 
     def to_dict(self):
+        ten_bai = self.deadline.ten_bai_tap if self.deadline else self.ma_bai_tap
+        mon_ten = self.deadline.mon_hoc.ten_mon if (self.deadline and self.deadline.mon_hoc) else ''
         return {
             'ma_gia_han': self.ma_gia_han,
             'ma_bai_tap': self.ma_bai_tap,
+            'ten_bai_tap': ten_bai,
+            'ten_mon': mon_ten,
             'han_cu': self.han_cu.strftime('%Y-%m-%d'),
             'han_moi': self.han_moi.strftime('%Y-%m-%d'),
             'ngay_gia_han': self.ngay_gia_han.strftime('%Y-%m-%d'),

@@ -528,22 +528,26 @@ async function renderReportAndExtensions() {
   const extLogs = await extRes.json();
 
   const tbody = document.getElementById('tblLichSuGiaHan');
-  if (extLogs.length === 0) {
-    tbody.innerHTML = '<tr><td colspan="6" style="text-align:center;">Chưa có lịch sử gia hạn nào. Bạn quản lý thời gian rất chuẩn xác! 👍</td></tr>';
+  if (!extLogs || extLogs.length === 0) {
+    tbody.innerHTML = '<tr><td colspan="6" style="text-align:center; padding: 24px; color: var(--text-muted);">Chưa có lịch sử gia hạn nào. Bạn quản lý thời gian rất chuẩn xác! 👍</td></tr>';
     return;
   }
 
   tbody.innerHTML = extLogs.map(l => `
     <tr>
       <td><code>${l.ma_gia_han}</code></td>
-      <td><code>${l.ma_bai_tap}</code></td>
-      <td>${formatDate(l.han_cu)}</td>
-      <td><strong style="color:#C98A2C;">${formatDate(l.han_moi)}</strong></td>
+      <td>
+        <div style="font-weight:600; color:var(--text-main);">${l.ten_bai_tap || l.ma_bai_tap}</div>
+        ${l.ten_mon ? `<div style="font-size:12px; color:var(--text-muted); font-weight:500;">📚 ${l.ten_mon}</div>` : ''}
+      </td>
+      <td><span style="color:#64748b; text-decoration:line-through;">${formatDate(l.han_cu)}</span></td>
+      <td><strong style="color:#d97706; background:#fffbeb; padding:2px 8px; border-radius:4px; border:1px solid #fde68a;">${formatDate(l.han_moi)}</strong></td>
       <td>${formatDate(l.ngay_gia_han)}</td>
       <td>${l.ly_do || '-'}</td>
     </tr>
   `).join('');
 }
+
 
 
 // ==========================================
@@ -767,6 +771,8 @@ async function submitExtendDeadline() {
     await fetchDeadlines();
     renderAllDeadlinesTable();
     renderDashboard();
+    renderReportAndExtensions();
+
   } else {
     alert(`❌ Error: ${json.error}`);
   }

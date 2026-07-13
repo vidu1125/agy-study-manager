@@ -25,12 +25,19 @@ with app.app_context():
 
 @app.route('/ping', methods=['GET'])
 def ping():
-    """Route anti-sleep dùng cho cron-job.org (UC Deploy - Section 3 Step 5)"""
+    """Route anti-sleep dùng cho cron-job.org (UC Deploy - Section 3 Step 5) & Trigger nhắc nhở hàng ngày"""
+    try:
+        notifications_sent = scheduler.nhac_deadline()
+    except Exception as e:
+        notifications_sent = 0
+
     return jsonify({
         'status': 'ok',
         'message': 'AGY STUDY Application Service is active and running',
+        'daily_notifications_triggered': notifications_sent,
         'timestamp': datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')
     }), 200
+
 
 
 
@@ -428,15 +435,23 @@ def extend_deadline(ma_bai_tap):
 
     deadline.han_nop = han_moi
     deadline.so_lan_gia_han += 1
+    deadline.ngay_nhac_cuoi = None  # Allow automatic reminder cycle to run for the new date
+
     if deadline.trang_thai == 'Tre_han':
         deadline.trang_thai = 'Dang_lam'
 
     db.session.commit()
+
+    # Dispatch extension push notification
+    ext_msg = f"⌛ Gia hạn Deadline thành công: '{deadline.ten_bai_tap}'\n📅 Hạn mới: {han_moi.strftime('%d/%m/%Y')} (Gia hạn lần thứ {deadline.so_lan_gia_han})\n📝 Lý do: {extension_log.ly_do}"
+    scheduler.gui_thong_bao(ext_msg, tieu_de="Gia hạn Deadline", tags="hourglass")
+
     return jsonify({
         'message': 'Gia hạn deadline thành công',
         'deadline': deadline.to_dict(),
         'lich_su': extension_log.to_dict()
     })
+
 
 
 # ==========================================

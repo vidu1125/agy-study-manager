@@ -226,27 +226,49 @@ def generate_weekly_report():
 # PUSH NOTIFICATION JOBS (UC10, UC13, UC14, UC15, UC16)
 # ==========================================
 def nhac_deadline():
-    """UC13 - Gửi push notification nhắc deadline trước hạn (7h00 hàng ngày)"""
+    """UC13 - Gửi push notification nhắc deadline trước hạn 0, 1, 2 ngày tự động hàng ngày"""
     homnay = datetime.date.today()
     deadlines = Deadline.query.filter(Deadline.trang_thai != "Hoan_thanh").all()
     sent_count = 0
 
     for dl in deadlines:
         so_ngay_con_lai = (dl.han_nop - homnay).days
-        nguong = [0, 1, 2] if dl.do_uu_tien == "Cao" else [0, 1]
+        mon_ten = dl.mon_hoc.ten_mon if dl.mon_hoc else dl.ma_mon
 
-        if so_ngay_con_lai in nguong:
-            mon_ten = dl.mon_hoc.ten_mon if dl.mon_hoc else ""
-            if so_ngay_con_lai == 0:
-                noi_dung = f"🚨 HÔM NAY HẠN NỘP! '{dl.ten_bai_tap}' ({mon_ten}) phải hoàn thành trong hôm nay!"
-                muc_uu_tien = "urgent"
-            else:
-                noi_dung = f"'{dl.ten_bai_tap}' ({mon_ten}) còn {so_ngay_con_lai} ngày (Hạn: {dl.han_nop.strftime('%d/%m/%Y')})"
-                muc_uu_tien = "urgent" if so_ngay_con_lai == 1 else "high"
-            gui_thong_bao(noi_dung, tieu_de="⏰ Deadline sắp đến!", uu_tien=muc_uu_tien, tags="warning,calendar")
-            sent_count += 1
+        # Tự động gửi thông báo liên tục mỗi ngày khi còn 2 ngày, 1 ngày, và 0 ngày (hôm nay)
+        if so_ngay_con_lai in [0, 1, 2] or so_ngay_con_lai < 0:
+            # Nếu hôm nay chưa nhắc cho deadline này thì gửi nhắc nhở
+            if dl.ngay_nhac_cuoi != homnay:
+                if so_ngay_con_lai == 0:
+                    noi_dung = f"🚨 [HẠN HÔM NAY] '{dl.ten_bai_tap}' ({mon_ten}) phải hoàn thành trong HÔM NAY ({dl.han_nop.strftime('%d/%m/%Y')})!"
+                    tieu_de = "🚨 Nhắc nhở: Hạn nộp Hôm Nay!"
+                    muc_uu_tien = "urgent"
+                    tags = "rotating_light,exclamation"
+                elif so_ngay_con_lai == 1:
+                    noi_dung = f"⏰ [CÒN 1 NGÀY] '{dl.ten_bai_tap}' ({mon_ten}) còn 1 ngày nữa - Ngày mai hết hạn! (Hạn: {dl.han_nop.strftime('%d/%m/%Y')})"
+                    tieu_de = "⏰ Nhắc nhở: Còn 1 Ngày!"
+                    muc_uu_tien = "high"
+                    tags = "warning,calendar"
+                elif so_ngay_con_lai == 2:
+                    noi_dung = f"📌 [CÒN 2 NGÀY] '{dl.ten_bai_tap}' ({mon_ten}) còn 2 ngày nữa đến hạn ({dl.han_nop.strftime('%d/%m/%Y')})"
+                    tieu_de = "📌 Nhắc nhở: Còn 2 Ngày!"
+                    muc_uu_tien = "default"
+                    tags = "memo,calendar"
+                else: # so_ngay_con_lai < 0
+                    noi_dung = f"⚠️ [ĐÃ TRỄ HẠN] '{dl.ten_bai_tap}' ({mon_ten}) đã quá hạn {abs(so_ngay_con_lai)} ngày!"
+                    tieu_de = "⚠️ Cảnh báo: Trễ Hạn Deadline!"
+                    muc_uu_tien = "high"
+                    tags = "warning,hourglass"
+
+                gui_thong_bao(noi_dung, tieu_de=tieu_de, uu_tien=muc_uu_tien, tags=tags)
+                dl.ngay_nhac_cuoi = homnay
+                sent_count += 1
+
+    if sent_count > 0:
+        db.session.commit()
 
     return sent_count
+
 
 
 

@@ -897,6 +897,25 @@ async function triggerUCNotification(ucName) {
   }
 }
 
+async function forceRemindNow() {
+  try {
+    const res = await fetch('/api/force_remind', { method: 'POST' });
+    const json = await res.json();
+    if (res.ok) {
+      if (json.message.includes('0 thông báo')) {
+        alert(`ℹ️ Không có deadline nào còn 0-2 ngày để nhắc lúc này.\n\nHãy chắc chắn bạn đã tạo deadline với hạn nộp trong 2 ngày tới!`);
+      } else {
+        alert(`✅ ${json.message}\n\n📱 Kiểm tra app ntfy trên điện thoại (Topic: ${json.topic})`);
+      }
+    } else {
+      alert(`❌ Lỗi: ${json.message}`);
+    }
+  } catch (err) {
+    alert(`❌ Lỗi kết nối server: ${err.message}`);
+  }
+}
+
+
 
 // ==========================================
 // THỜI KHÓA BIỂU & LỊCH PIN POINT (UC19 - UC26)

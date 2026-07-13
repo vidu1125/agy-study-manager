@@ -197,6 +197,29 @@ def trigger_uc_notification(uc_name):
     })
 
 
+@app.route('/api/force_remind', methods=['POST'])
+def force_remind():
+    """Force gửi nhắc nhở ngay lập tức cho tất cả deadline sắp đến (reset dedup filter)"""
+    today = datetime.date.today()
+    active = Deadline.query.filter(Deadline.trang_thai != 'Hoan_thanh').all()
+
+    # Reset ngay_nhac_cuoi để bypass dedup check
+    for d in active:
+        days_left = (d.han_nop - today).days
+        if days_left in [0, 1, 2] or days_left < 0:
+            d.ngay_nhac_cuoi = None
+    db.session.commit()
+
+    count = scheduler.nhac_deadline()
+    return jsonify({
+        'status': 'success',
+        'message': f"Đã gửi {count} thông báo nhắc nhở về điện thoại!",
+        'topic': scheduler.get_ntfy_topic()
+    })
+
+
+
+
 @app.route('/api/ntfy_config', methods=['GET', 'POST'])
 def handle_ntfy_config():
     if request.method == 'POST':

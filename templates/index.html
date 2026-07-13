@@ -285,12 +285,17 @@
                 <a id="linkNtfySubscribe" href="https://ntfy.sh/dung-hoctap-nhacnho-9f3k2xq8" target="_blank" class="btn-sm" style="background:#ffffff; color:#1d4ed8; text-decoration:none;"><i class="fa-solid fa-mobile-screen-button"></i> Mở link Subscribe trên Phone</a>
               </div>
               <div style="margin-top:12px; display:flex; gap:8px; flex-wrap:wrap;">
+                <button class="btn-primary" onclick="forceRemindNow()" style="background:linear-gradient(135deg,#dc2626,#b91c1c); border:none;">🚨 Nhắc Ngay (0-2 ngày trước hạn)</button>
                 <button class="btn-sm" onclick="triggerUCNotification('uc13')">🔔 Test UC13 (Nhắc Deadline)</button>
                 <button class="btn-sm" onclick="triggerUCNotification('uc14')">📝 Test UC14 (Nhắc Log Giờ)</button>
                 <button class="btn-sm" onclick="triggerUCNotification('uc15')">🚨 Test UC15 (Cảnh Báo Quá Tải)</button>
                 <button class="btn-sm" onclick="triggerUCNotification('uc10')">🧠 Test UC10 (Spaced Repetition)</button>
                 <button class="btn-sm" onclick="triggerUCNotification('uc16')">📊 Test UC16 (Báo Cáo Tuần)</button>
               </div>
+              <div style="margin-top:10px; font-size:12px; color:#475569; background:#f1f5f9; padding:8px 12px; border-radius:6px;">
+                💡 <strong>Lưu ý:</strong> Thông báo tự động hàng ngày được gửi lúc <strong>07:00 sáng</strong> (APScheduler chạy nền). Bấm <strong>"Nhắc Ngay"</strong> để kích hoạt tức thì bất cứ lúc nào.
+              </div>
+
             </div>
           </div>
 

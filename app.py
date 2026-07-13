@@ -20,7 +20,25 @@ db.init_app(app)
 
 with app.app_context():
     db.create_all()
+    # Auto migrate missing columns in SQLite database for smooth deployment upgrades
+    try:
+        import sqlite3
+        db_uri = app.config.get('SQLALCHEMY_DATABASE_URI', '')
+        if 'sqlite' in db_uri:
+            db_path = db_uri.replace('sqlite:///', '')
+            conn = sqlite3.connect(db_path)
+            cursor = conn.cursor()
+            cursor.execute("PRAGMA table_info(DEADLINE);")
+            cols = [row[1] for row in cursor.fetchall()]
+            if 'ngay_nhac_cuoi' not in cols:
+                cursor.execute("ALTER TABLE DEADLINE ADD COLUMN ngay_nhac_cuoi DATE;")
+                conn.commit()
+            conn.close()
+    except Exception as e:
+        print("Schema migration info:", e)
+
     seed_database()
+
 
 
 @app.route('/ping', methods=['GET'])

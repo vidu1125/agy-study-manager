@@ -1,0 +1,19 @@
+services:
+  - type: web
+    name: agy-study-app
+    env: python
+    buildCommand: pip install -r requirements.txt
+    startCommand: gunicorn app:app
+    envVars:
+      - key: DB_PATH
+        value: /data/database.db
+      - key: TELEGRAM_BOT_TOKEN
+        sync: false
+      - key: TELEGRAM_CHAT_ID
+        sync: false
+      - key: NTFY_TOPIC
+        value: dung-hoctap-nhacnho-9f3k2xq8
+    disk:
+      name: sqlite-data
+      mountPath: /data
+      sizeGB: 1

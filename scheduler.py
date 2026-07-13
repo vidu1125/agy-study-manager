@@ -110,25 +110,34 @@ def check_deadline_reminders():
     reminders = []
     for d in active_deadlines:
         days_left = (d.han_nop - today).days
-        if d.do_uu_tien == 'Cao' and days_left in [1, 2]:
-            reminders.append({
-                'type': 'deadline_urgent',
-                'level': 'warning' if days_left == 1 else 'info',
-                'message': f"⏰ [Ưu tiên Cao] Deadline '{d.ten_bai_tap}' ({d.mon_hoc.ten_mon}) còn {days_left} ngày (Hạn: {d.han_nop.strftime('%d/%m')})."
-            })
-        elif d.do_uu_tien in ['Trung_binh', 'Thap'] and days_left == 1:
-            reminders.append({
-                'type': 'deadline_reminder',
-                'level': 'info',
-                'message': f"📌 Deadline '{d.ten_bai_tap}' ({d.mon_hoc.ten_mon}) sắp hết hạn vào ngày mai ({d.han_nop.strftime('%d/%m')})."
-            })
-        elif days_left < 0:
+        mon_ten = d.mon_hoc.ten_mon if d.mon_hoc else d.ma_mon
+        
+        if days_left < 0:
             reminders.append({
                 'type': 'deadline_overdue',
                 'level': 'danger',
-                'message': f"⚠️ Deadline '{d.ten_bai_tap}' ({d.mon_hoc.ten_mon}) đã quá hạn {abs(days_left)} ngày!"
+                'message': f"⚠️ Deadline '{d.ten_bai_tap}' ({mon_ten}) đã quá hạn {abs(days_left)} ngày!"
+            })
+        elif days_left == 0:
+            reminders.append({
+                'type': 'deadline_urgent',
+                'level': 'danger',
+                'message': f"🚨 [HẠN HÔM NAY] Deadline '{d.ten_bai_tap}' ({mon_ten}) phải hoàn thành trong hôm nay ({d.han_nop.strftime('%d/%m')})!"
+            })
+        elif d.do_uu_tien == 'Cao' and days_left in [1, 2, 3]:
+            reminders.append({
+                'type': 'deadline_urgent',
+                'level': 'warning' if days_left <= 1 else 'info',
+                'message': f"⏰ [Ưu tiên Cao] Deadline '{d.ten_bai_tap}' ({mon_ten}) còn {days_left} ngày (Hạn: {d.han_nop.strftime('%d/%m')})."
+            })
+        elif d.do_uu_tien in ['Trung_binh', 'Thap'] and days_left in [1, 2]:
+            reminders.append({
+                'type': 'deadline_reminder',
+                'level': 'info',
+                'message': f"📌 Deadline '{d.ten_bai_tap}' ({mon_ten}) còn {days_left} ngày (Hạn: {d.han_nop.strftime('%d/%m')})."
             })
     return reminders
+
 
 
 def check_missing_time_logs():

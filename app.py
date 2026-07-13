@@ -358,12 +358,21 @@ def create_deadline():
 
     db.session.commit()
 
-    # Automatically trigger deadline push notification check if new deadline is due soon
+    # Instant Push Notification when new deadline is created
     days_left = (han_nop - datetime.date.today()).days
-    if days_left <= 2:
-        scheduler.nhac_deadline()
+    creation_msg = f"🎉 Đã tạo Deadline: '{ten_bai_tap}' ({mon.ten_mon})\n⏰ Hạn nộp: {han_nop.strftime('%d/%m/%Y')} (Còn {days_left} ngày)\n🔥 Ưu tiên: {deadline.do_uu_tien}"
+    scheduler.gui_thong_bao(
+        creation_msg,
+        tieu_de="Tạo mới Deadline",
+        uu_tien="high" if deadline.do_uu_tien == "Cao" else "default",
+        tags="memo,calendar"
+    )
+
+    # Immediately trigger periodic scheduler check for upcoming deadlines
+    scheduler.nhac_deadline()
 
     return jsonify({'message': 'Tạo deadline thành công', 'deadline': deadline.to_dict()}), 201
+
 
 
 

@@ -1,6 +1,7 @@
 import os
 import datetime
 import requests
+import base64
 from models import db, MonHoc, Deadline, TaiLieu, NhatKyThoiGian, MucTieu, LogLoi
 
 # Topic mặc định trên ntfy.sh (an toàn, có thể override qua biến môi trường NTFY_TOPIC)
@@ -32,11 +33,13 @@ def gui_thong_bao(noi_dung: str, tieu_de: str = "Nhắc nhở học tập", uu_t
     topic = get_ntfy_topic()
     url_ntfy = f"https://ntfy.sh/{topic}"
     try:
+        # Base64 RFC 2047 header encoding to support UTF-8 Vietnamese & Emoji in HTTP Header
+        encoded_title = f"=?utf-8?B?{base64.b64encode(tieu_de.encode('utf-8')).decode('utf-8')}?="
         res = requests.post(
             url_ntfy,
             data=noi_dung.encode("utf-8"),
             headers={
-                "Title": tieu_de.encode("utf-8"),
+                "Title": encoded_title,
                 "Priority": uu_tien,
                 "Tags": tags
             },
@@ -46,8 +49,9 @@ def gui_thong_bao(noi_dung: str, tieu_de: str = "Nhắc nhở học tập", uu_t
             sent_services.append(f"ntfy.sh ({topic})")
         else:
             ghi_log_loi_gui(f"ntfy HTTP {res.status_code}: {res.text}", "gui_thong_bao_ntfy")
-    except requests.RequestException as e:
+    except Exception as e:
         ghi_log_loi_gui(f"ntfy Error: {str(e)}", "gui_thong_bao_ntfy")
+
 
     # 2. Dispatch via Telegram Bot API (if configured in env)
     tg_token = os.environ.get("TELEGRAM_BOT_TOKEN")

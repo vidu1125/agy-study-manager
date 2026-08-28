@@ -747,7 +747,71 @@
   </div>
 
 
-  <!-- 2. MODAL: THÊM DEADLINE MỚI (UC04 & UC05) -->
+  <!-- 2. MODAL: SỬA MÔN HỌC -->
+  <div class="modal-overlay" id="modalEditMonHoc">
+    <div class="modal-card">
+      <div class="modal-header">
+        <h3>SỬA THÔNG TIN MÔN HỌC</h3>
+        <button class="modal-close" onclick="closeModal('modalEditMonHoc')">&times;</button>
+      </div>
+      <div class="modal-body">
+        <input type="hidden" id="hdnEditMonHocMa">
+        <div class="form-row">
+          <div class="form-group">
+            <label>Mã môn học</label>
+            <input type="text" id="inputEditMonMa" class="form-control" disabled>
+          </div>
+          <div class="form-group">
+            <label>Loại môn</label>
+            <input type="text" id="inputEditMonLoai" class="form-control" disabled>
+          </div>
+        </div>
+        <p class="form-hint">Mã và loại môn không đổi để bảo toàn deadline, tài liệu và lịch học đã liên kết.</p>
+        <div class="form-group">
+          <label>Tên môn học *</label>
+          <input type="text" id="inputEditMonTen" class="form-control">
+        </div>
+        <div id="groupEditMonTruong" class="form-row">
+          <div class="form-group">
+            <label>Giảng viên *</label>
+            <input type="text" id="inputEditMonGiangVien" class="form-control">
+          </div>
+          <div class="form-group">
+            <label>Số tín chỉ *</label>
+            <input type="number" id="inputEditMonTinChi" class="form-control" min="1" max="10">
+          </div>
+        </div>
+        <div id="groupEditMonTuHoc" class="form-group" style="display:none;">
+          <label>Nguồn học *</label>
+          <input type="text" id="inputEditMonNguonHoc" class="form-control">
+        </div>
+        <div class="form-row">
+          <div class="form-group">
+            <label>Mức độ ưu tiên</label>
+            <select id="inputEditMonUuTien" class="form-control">
+              <option value="Cao">Cao</option>
+              <option value="Trung_binh">Trung bình</option>
+              <option value="Thap">Thấp</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label>Trạng thái</label>
+            <select id="inputEditMonTrangThai" class="form-control">
+              <option value="Dang_hoc">Đang học</option>
+              <option value="Da_xong">Đã xong</option>
+            </select>
+          </div>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn-secondary" onclick="closeModal('modalEditMonHoc')">Hủy</button>
+        <button class="btn-primary" onclick="submitEditMonHoc()">Lưu thay đổi</button>
+      </div>
+    </div>
+  </div>
+
+
+  <!-- 3. MODAL: THÊM DEADLINE MỚI (UC04 & UC05) -->
   <div class="modal-overlay" id="modalAddDeadline">
     <div class="modal-card">
       <div class="modal-header">

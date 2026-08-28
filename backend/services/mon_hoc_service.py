@@ -83,16 +83,44 @@ class MonHocService:
         if not mon:
             raise LookupError("Không tìm thấy môn học")
 
-        mon.ten_mon = data.get("ten_mon", mon.ten_mon)
-        mon.muc_do_uu_tien = data.get("muc_do_uu_tien", mon.muc_do_uu_tien)
-        mon.trang_thai = data.get("trang_thai", mon.trang_thai)
+        if "ten_mon" in data:
+            ten_mon = (data.get("ten_mon") or "").strip()
+            if not ten_mon:
+                raise ValueError("Tên môn học không được để trống")
+            mon.ten_mon = ten_mon
+
+        if "muc_do_uu_tien" in data:
+            muc_do_uu_tien = data["muc_do_uu_tien"]
+            if muc_do_uu_tien not in {"Cao", "Trung_binh", "Thap"}:
+                raise ValueError("Mức độ ưu tiên không hợp lệ")
+            mon.muc_do_uu_tien = muc_do_uu_tien
+
+        if "trang_thai" in data:
+            trang_thai = data["trang_thai"]
+            if trang_thai not in {"Dang_hoc", "Da_xong"}:
+                raise ValueError("Trạng thái môn học không hợp lệ")
+            mon.trang_thai = trang_thai
 
         if mon.loai_mon == "Truong":
-            mon.giang_vien = data.get("giang_vien", mon.giang_vien)
+            if "giang_vien" in data:
+                giang_vien = (data.get("giang_vien") or "").strip()
+                if not giang_vien:
+                    raise ValueError("Môn thuộc trường bắt buộc điền Giảng viên")
+                mon.giang_vien = giang_vien
             if "so_tin_chi" in data:
-                mon.so_tin_chi = int(data["so_tin_chi"])
+                try:
+                    so_tin_chi = int(data["so_tin_chi"])
+                except (TypeError, ValueError) as error:
+                    raise ValueError("Số tín chỉ phải là số nguyên") from error
+                if not 1 <= so_tin_chi <= 10:
+                    raise ValueError("Số tín chỉ phải từ 1 đến 10")
+                mon.so_tin_chi = so_tin_chi
         else:
-            mon.nguon_hoc = data.get("nguon_hoc", mon.nguon_hoc)
+            if "nguon_hoc" in data:
+                nguon_hoc = (data.get("nguon_hoc") or "").strip()
+                if not nguon_hoc:
+                    raise ValueError("Môn tự học bắt buộc điền Nguồn học")
+                mon.nguon_hoc = nguon_hoc
 
         db.session.commit()
         return mon.to_dict()

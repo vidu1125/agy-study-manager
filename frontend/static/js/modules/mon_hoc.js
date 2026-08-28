@@ -53,10 +53,72 @@ function renderMonHocTable() {
       <td>${renderPriorityChip(s.muc_do_uu_tien)}</td>
       <td>${s.trang_thai === 'Dang_hoc' ? '<span style="color:var(--accent-emerald)">Đang học</span>' : '<span style="color:var(--text-muted)">Đã xong</span>'}</td>
       <td>
-        <button class="btn-sm" onclick="softDeleteMonHoc('${s.ma_mon}')">Kết thúc (Xóa)</button>
+        <div class="subject-actions">
+          <button class="btn-sm" onclick="openEditMonHoc('${s.ma_mon}')">Sửa</button>
+          <button class="btn-sm" onclick="softDeleteMonHoc('${s.ma_mon}')">Kết thúc</button>
+        </div>
       </td>
     </tr>
   `).join('');
+}
+
+function openEditMonHoc(ma_mon) {
+  const subject = globalData.subjects.find(item => item.ma_mon === ma_mon);
+  if (!subject) {
+    alert('Không tìm thấy môn học cần sửa. Hãy tải lại trang và thử lại.');
+    return;
+  }
+
+  document.getElementById('hdnEditMonHocMa').value = subject.ma_mon;
+  document.getElementById('inputEditMonMa').value = subject.ma_mon;
+  document.getElementById('inputEditMonLoai').value = subject.loai_mon === 'Truong' ? 'Môn trường' : 'Môn tự học';
+  document.getElementById('inputEditMonTen').value = subject.ten_mon || '';
+  document.getElementById('inputEditMonUuTien').value = subject.muc_do_uu_tien || 'Trung_binh';
+  document.getElementById('inputEditMonTrangThai').value = subject.trang_thai || 'Dang_hoc';
+
+  const isSchoolSubject = subject.loai_mon === 'Truong';
+  document.getElementById('groupEditMonTruong').style.display = isSchoolSubject ? 'grid' : 'none';
+  document.getElementById('groupEditMonTuHoc').style.display = isSchoolSubject ? 'none' : 'block';
+  document.getElementById('inputEditMonGiangVien').value = subject.giang_vien || '';
+  document.getElementById('inputEditMonTinChi').value = subject.so_tin_chi || '';
+  document.getElementById('inputEditMonNguonHoc').value = subject.nguon_hoc || '';
+
+  openModal('modalEditMonHoc');
+}
+
+async function submitEditMonHoc() {
+  const ma_mon = document.getElementById('hdnEditMonHocMa').value;
+  const subject = globalData.subjects.find(item => item.ma_mon === ma_mon);
+  if (!subject) return;
+
+  const payload = {
+    ten_mon: document.getElementById('inputEditMonTen').value.trim(),
+    muc_do_uu_tien: document.getElementById('inputEditMonUuTien').value,
+    trang_thai: document.getElementById('inputEditMonTrangThai').value,
+  };
+
+  if (subject.loai_mon === 'Truong') {
+    payload.giang_vien = document.getElementById('inputEditMonGiangVien').value.trim();
+    payload.so_tin_chi = document.getElementById('inputEditMonTinChi').value;
+  } else {
+    payload.nguon_hoc = document.getElementById('inputEditMonNguonHoc').value.trim();
+  }
+
+  const res = await fetch(`/api/mon_hoc/${encodeURIComponent(ma_mon)}`, {
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(payload),
+  });
+  const json = await res.json();
+  if (!res.ok) {
+    alert(`Lỗi: ${json.error || 'Không thể cập nhật môn học.'}`);
+    return;
+  }
+
+  alert('Cập nhật môn học thành công!');
+  closeModal('modalEditMonHoc');
+  await fetchSubjects();
+  renderMonHocTable();
 }
 
 async function submitAddMonHoc() {

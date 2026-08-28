@@ -7,7 +7,7 @@ VENV_PIP := $(VENV)/bin/pip
 COMPOSE ?= docker compose
 
 PYTHON_SOURCES := run.py app.py backend/*.py backend/routes/*.py backend/services/*.py backend/notifications/*.py backend/migrations/*.py backend/presenters/*.py
-JAVASCRIPT_SOURCES := frontend/static/js/app.js frontend/static/js/vocab_analytics.js
+JAVASCRIPT_SOURCES := frontend/static/js/app.js frontend/static/js/vocab_analytics.js frontend/static/js/modules/*.js
 
 .DEFAULT_GOAL := help
 
@@ -31,9 +31,9 @@ run: env ## Chạy ứng dụng local (scheduler mặc định tắt)
 check: ## Kiểm tra Python, JavaScript và health endpoint
 	@if [ ! -x $(VENV_PYTHON) ]; then $(MAKE) install; fi
 	SCHEDULER_ENABLED=false $(VENV_PYTHON) -m py_compile $(PYTHON_SOURCES)
-	node --check frontend/static/js/app.js
-	node --check frontend/static/js/vocab_analytics.js
-	SCHEDULER_ENABLED=false $(VENV_PYTHON) -c "from run import app; client = app.test_client(); assert client.get('/healthz').status_code == 200; assert client.get('/').status_code == 200; print('Health and page smoke tests passed')"
+	@for source in $(JAVASCRIPT_SOURCES); do node --check "$$source"; done
+	@CHECK_DIR=$$(mktemp -d); trap 'rm -rf "$$CHECK_DIR"' EXIT; \
+	DATABASE_URL= DB_PATH="$$CHECK_DIR/database.db" UPLOAD_DIR="$$CHECK_DIR/uploads" SCHEDULER_ENABLED=false $(VENV_PYTHON) -c "from run import app; client = app.test_client(); assert client.get('/healthz').status_code == 200; assert client.get('/').status_code == 200; print('Health and page smoke tests passed')"
 
 test: check ## Alias kiểm tra hiện có (chưa có pytest suite)
 

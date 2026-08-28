@@ -39,6 +39,8 @@ Lệnh này chỉ dừng container, **không xoá** named volume chứa database
 | `SCHEDULER_ENABLED` | `false` | Tránh nhiều máy cùng gửi thông báo định kỳ |
 | `DATABASE_URL` | rỗng | URI PostgreSQL Supabase; có giá trị thì được ưu tiên thay SQLite |
 | `DB_PATH` | `./data/database.db` | Đường dẫn SQLite khi `DATABASE_URL` rỗng |
+| `UPLOAD_DIR` | `./data/uploads` | Thư mục lưu tệp tài liệu do người dùng tải lên |
+| `MAX_UPLOAD_MB` | `25` | Giới hạn một tệp tài liệu, từ 1 đến 100 MB |
 | `NTFY_TOPIC` | rỗng | Topic ntfy tùy chọn |
 | `TELEGRAM_BOT_TOKEN` | rỗng | Chỉ dùng khi đã cấu hình Telegram |
 | `TELEGRAM_CHAT_ID` | rỗng | Chỉ dùng khi đã cấu hình Telegram |
@@ -98,3 +100,20 @@ SCHEDULER_ENABLED=true
 ```
 
 Chỉ để một service/replica có `SCHEDULER_ENABLED=true`; nếu chạy nhiều replica, các job nhắc lịch sẽ bị thực thi trùng. Railway dùng `/healthz` làm health check, không còn dùng `/ping` vì `/ping` có thể kích hoạt nghiệp vụ nhắc deadline.
+
+### Lưu tệp tài liệu trên Railway
+
+File upload không nằm trong Supabase PostgreSQL và sẽ không bền vững nếu service không có Volume. Để PDF/Word/PowerPoint/Excel còn tồn tại sau redeploy:
+
+1. Mở service Flask → **Settings** → **Volumes** → **Add Volume**.
+2. Chọn mount path `/app/data`.
+3. Trong **Variables**, đặt:
+
+   ```text
+   UPLOAD_DIR=/app/data/uploads
+   MAX_UPLOAD_MB=25
+   ```
+
+4. Nếu Railway chạy image từ `Dockerfile` của dự án và log báo `Permission denied` khi upload, thêm `RAILWAY_RUN_UID=0`, sau đó redeploy. Dockerfile dùng user không đặc quyền nên Volume do Railway mount có thể cần biến này.
+
+Link ngoài (Google Drive, OneDrive, website...) không cần Volume. Tệp upload được phục vụ từ URL public của web; không dùng cơ chế này cho tài liệu cần giới hạn quyền truy cập.

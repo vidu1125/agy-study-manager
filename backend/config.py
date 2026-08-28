@@ -66,3 +66,16 @@ def get_database_uri(app_root_path: str) -> str:
     # SQLite fallback
     db_path = get_db_path(app_root_path)
     return f"sqlite:///{db_path}"
+
+
+def get_upload_dir(app_root_path: str) -> str:
+    """Resolve nơi lưu tệp tài liệu người dùng tải lên.
+
+    Production nên trỏ thư mục này vào một Railway Volume. Mặc định giữ tệp
+    cạnh dữ liệu SQLite để Docker Compose có thể mount cả hai cùng một volume.
+    """
+    configured_path = os.getenv("UPLOAD_DIR", "./data/uploads")
+    upload_dir = configured_path if os.path.isabs(configured_path) else os.path.join(app_root_path, configured_path)
+    upload_dir = os.path.abspath(upload_dir)
+    os.makedirs(upload_dir, exist_ok=True)
+    return upload_dir

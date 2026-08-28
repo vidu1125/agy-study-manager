@@ -1,5 +1,7 @@
 # AGY Study Manager
 
+> 🌐 **Production URL:** [https://agy-study-manager-production.up.railway.app](https://agy-study-manager-production.up.railway.app)
+
 Web quản lý học tập cá nhân: theo dõi môn học, deadline, lịch học, thời gian tự học và ôn từ vựng tiếng Anh theo **Spaced Repetition**.
 
 ## Mục tiêu
@@ -18,7 +20,7 @@ AGY Study Manager giúp biến việc học thành một hệ thống dễ theo 
 |---|---|
 | Dashboard | Tổng quan deadline, cảnh báo, streak và tiến độ học |
 | Môn học & deadline | Quản lý môn trường/tự học, ưu tiên, output và gia hạn |
-| Lịch & tài liệu | Thời khóa biểu, lịch sự kiện, tài liệu học tập và mục tiêu |
+| Lịch & tài liệu | Thời khóa biểu, lịch sự kiện, tài liệu chung hoặc theo môn, link và tệp học tập |
 | Nhật ký học | Ghi thời gian học, mức độ tập trung và ghi chú |
 | Từ vựng SRS | Deck, note, flashcard Anh–Việt/Việt–Anh, học theo lịch Spaced Repetition |
 | Phân tích từ vựng | Biểu đồ đường/cột/tròn, forecast ôn tập, quality trả lời và danh sách từ yếu |
@@ -91,6 +93,8 @@ SCHEDULER_ENABLED=false
 # Để trống để dùng SQLite local.
 DATABASE_URL=
 DB_PATH=./data/database.db
+UPLOAD_DIR=./data/uploads
+MAX_UPLOAD_MB=25
 
 # Tùy chọn
 NTFY_TOPIC=
@@ -111,6 +115,13 @@ Sau đó chạy lại `make run` hoặc `make docker-up`. Với Supabase databas
 Không đặt `SUPABASE_SECRET_KEY`, `service_role` key hay database URI trong source code/browser. Publishable/Anon key cũng chưa cần vì app không gọi Supabase Data API trực tiếp.
 
 Hướng dẫn chi tiết: [Khởi tạo Supabase & deploy](docs/09_Huong_Dan_Khoi_Tao_Supabase_Deploy.md).
+
+### Tài liệu học tập
+
+- Môn học là tùy chọn: có thể lưu tài liệu chung cho nhiều môn.
+- Có thể chỉ lưu thông tin, thêm link `http(s)` (Google Drive, OneDrive, website...) hoặc tải tệp PDF, Word, PowerPoint, Excel, văn bản và hình ảnh. Giới hạn mặc định là 25 MB/tệp.
+- Khi deploy Railway, tạo **Volume** mount tại `/app/data` và đặt `UPLOAD_DIR=/app/data/uploads`; nếu không, file tải trực tiếp lên service có thể mất sau redeploy. Link ngoài không bị ảnh hưởng.
+- Tệp tải lên hiện được mở qua URL của ứng dụng. Chỉ tải lên tài liệu bạn được phép chia sẻ.
 
 ## Lệnh thường dùng
 

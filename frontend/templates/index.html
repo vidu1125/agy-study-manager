@@ -326,7 +326,7 @@
                     <th>Môn học</th>
                     <th>Tên tài liệu</th>
                     <th>Loại</th>
-                    <th>Link truy cập</th>
+                    <th>Tệp / Link</th>
                     <th>Ngày thêm</th>
                     <th>Gợi ý ôn tập</th>
                     <th>Thao tác</th>
@@ -957,9 +957,9 @@
       </div>
       <div class="modal-body">
         <div class="form-group">
-          <label>Môn học *</label>
+          <label>Môn học liên quan (Tùy chọn)</label>
           <select id="selectTaiLieuMonHoc" class="form-control">
-            <option value="">-- Chọn môn học --</option>
+            <option value="">-- Tài liệu chung, không thuộc môn nào --</option>
           </select>
         </div>
         <div class="form-group">
@@ -969,16 +969,38 @@
         <div class="form-group">
           <label>Loại tài liệu</label>
           <select id="selectTaiLieuLoai" class="form-control">
+            <option value="Tu_dong">Tự nhận diện theo tệp / link</option>
             <option value="Slide">Slide</option>
             <option value="De_cuong">Đề cương</option>
             <option value="Bai_giai">Bài giải</option>
             <option value="Video">Video</option>
             <option value="Sach">Sách</option>
+            <option value="PDF">PDF</option>
+            <option value="Word">Word</option>
+            <option value="PowerPoint">PowerPoint</option>
+            <option value="Excel">Excel / CSV</option>
+            <option value="Van_ban">Văn bản</option>
+            <option value="Hinh_anh">Hình ảnh</option>
+            <option value="Link">Link / Website</option>
+            <option value="Khac">Khác</option>
           </select>
         </div>
         <div class="form-group">
-          <label>Link truy cập (Tùy chọn)</label>
-          <input type="url" id="inputTaiLieuLink" class="form-control" placeholder="https://...">
+          <label>Nguồn tài liệu (Tùy chọn)</label>
+          <select id="selectTaiLieuSource" class="form-control" onchange="toggleTaiLieuSource()">
+            <option value="none">Chỉ lưu thông tin, chưa đính kèm</option>
+            <option value="link">Thêm link (web, Google Drive, OneDrive...)</option>
+            <option value="file">Tải tệp từ thiết bị</option>
+          </select>
+        </div>
+        <div class="form-group" id="groupTaiLieuLink" style="display:none;">
+          <label>Link truy cập</label>
+          <input type="url" id="inputTaiLieuLink" class="form-control" placeholder="https://drive.google.com/...">
+        </div>
+        <div class="form-group" id="groupTaiLieuFile" style="display:none;">
+          <label>Chọn tệp</label>
+          <input type="file" id="inputTaiLieuFile" class="form-control" accept=".pdf,.doc,.docx,.ppt,.pptx,.xls,.xlsx,.txt,.md,.csv,.png,.jpg,.jpeg,.webp">
+          <small style="color:var(--text-muted);">PDF, Word, PowerPoint, Excel, văn bản hoặc hình ảnh; tối đa 25 MB.</small>
         </div>
       </div>
       <div class="modal-footer">

@@ -18,9 +18,10 @@ if BACKEND_DIR not in sys.path:
 
 from flask import Flask, render_template, jsonify
 from sqlalchemy import text
+from werkzeug.exceptions import RequestEntityTooLarge
 from models import db
-from config import get_bool_env, get_database_uri
-from migrations.migrate import run_sqlite_migrations
+from config import get_bool_env, get_database_uri, get_int_env, get_upload_dir
+from migrations.migrate import run_database_migrations
 from seed_data import seed_database
 from apscheduler.schedulers.background import BackgroundScheduler
 import notifications.notification_jobs as jobs
@@ -36,6 +37,10 @@ def create_app() -> Flask:
     db_uri = get_database_uri(BASE_DIR)
     app.config["SQLALCHEMY_DATABASE_URI"] = db_uri
     app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
+    app.config["UPLOAD_FOLDER"] = get_upload_dir(BASE_DIR)
+    app.config["MAX_CONTENT_LENGTH"] = get_int_env(
+        "MAX_UPLOAD_MB", default=25, min_value=1, max_value=100
+    ) * 1024 * 1024
 
     # Cấu hình connection pool cho PostgreSQL (Supabase / Cloud DB)
     if "sqlite" not in db_uri:
@@ -50,7 +55,7 @@ def create_app() -> Flask:
 
     with app.app_context():
         db.create_all()
-        run_sqlite_migrations(db_uri)
+        run_database_migrations(db_uri, db.engine)
         seed_database()
 
     # ── Blueprints ────────────────────────────────────────────────────────────
@@ -82,6 +87,11 @@ def create_app() -> Flask:
         _start_scheduler(app)
     else:
         app.logger.info("Scheduler disabled by SCHEDULER_ENABLED")
+
+    @app.errorhandler(RequestEntityTooLarge)
+    def upload_too_large(_error):
+        max_upload_mb = app.config["MAX_CONTENT_LENGTH"] // (1024 * 1024)
+        return jsonify({"error": f"Tệp vượt quá giới hạn {max_upload_mb} MB"}), 413
 
     return app
 

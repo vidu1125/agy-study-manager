@@ -44,10 +44,10 @@ erDiagram
 
     TAI_LIEU {
         string ma_tai_lieu PK
-        string ma_mon FK
+        string ma_mon FK "nullable - tai lieu chung"
         string ten_tai_lieu
-        string loai_tai_lieu "Slide/De_cuong/Bai_giai/Video/Sach"
-        string link
+        string loai_tai_lieu "PDF/Word/PPT/Excel/Link/..."
+        string link "external URL hoac /uploads/..."
         date ngay_them "auto = today"
     }
 
@@ -170,10 +170,10 @@ IF loai_mon = "Tu_hoc" THEN nguon_hoc bắt buộc
 | Trường | Kiểu dữ liệu | Ràng buộc |
 |---|---|---|
 | `ma_tai_lieu` | VARCHAR(30) | PK |
-| `ma_mon` | VARCHAR(20) | FK → MON_HOC |
+| `ma_mon` | VARCHAR(20) | FK → MON_HOC, nullable cho tài liệu chung |
 | `ten_tai_lieu` | VARCHAR(200) | NOT NULL |
-| `loai_tai_lieu` | ENUM | `Slide`\|`De_cuong`\|`Bai_giai`\|`Video`\|`Sach` |
-| `link` | VARCHAR(500) | Validate URL |
+| `loai_tai_lieu` | VARCHAR(30) | Slide\|PDF\|Word\|PowerPoint\|Excel\|Link\|... |
+| `link` | VARCHAR(500) | URL `http(s)` hoặc đường dẫn tệp app quản lý `/uploads/...`; có thể để trống |
 | `ngay_them` | DATE | Auto = today |
 
 ---

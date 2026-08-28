@@ -141,7 +141,8 @@ class TaiLieu(db.Model):
     __tablename__ = 'TAI_LIEU'
     
     ma_tai_lieu = db.Column(db.String(30), primary_key=True)
-    ma_mon = db.Column(db.String(20), db.ForeignKey('MON_HOC.ma_mon'), nullable=False)
+    # Tài liệu có thể là tài liệu chung, không bắt buộc gắn với một môn học.
+    ma_mon = db.Column(db.String(20), db.ForeignKey('MON_HOC.ma_mon'), nullable=True)
     ten_tai_lieu = db.Column(db.String(200), nullable=False)
     loai_tai_lieu = db.Column(db.String(30), nullable=False) # 'Slide', 'De_cuong', 'Bai_giai', 'Video', 'Sach'
     link = db.Column(db.String(500), nullable=True)
@@ -444,5 +445,4 @@ class VocabReviewLog(db.Model):
     interval_before_days = db.Column(db.Integer, nullable=False)
     interval_after_days = db.Column(db.Integer, nullable=False)
     time_taken_ms = db.Column(db.Integer, nullable=True)
-
 

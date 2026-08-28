@@ -14,7 +14,10 @@ if BACKEND_DIR not in sys.path:
     sys.path.insert(0, BACKEND_DIR)
 
 from backend.app import app
+from backend.config import get_bool_env, get_int_env
 
 if __name__ == "__main__":
-    print("🚀 Starting AGY Study Manager on http://localhost:5000")
-    app.run(host="0.0.0.0", port=5000, debug=True)
+    port = get_int_env("PORT", default=5000)
+    debug = get_bool_env("FLASK_DEBUG", default=True)
+    print(f"🚀 Starting AGY Study Manager on http://localhost:{port}")
+    app.run(host="0.0.0.0", port=port, debug=debug)

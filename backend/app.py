@@ -17,8 +17,9 @@ if BACKEND_DIR not in sys.path:
     sys.path.insert(0, BACKEND_DIR)
 
 from flask import Flask, render_template, jsonify
+from sqlalchemy import text
 from models import db
-from config import get_database_uri
+from config import get_bool_env, get_database_uri
 from migrations.migrate import run_sqlite_migrations
 from seed_data import seed_database
 from apscheduler.schedulers.background import BackgroundScheduler
@@ -76,7 +77,11 @@ def create_app() -> Flask:
         pass
 
     # ── Background Scheduler (UC10, UC13–UC16) ────────────────────────────────
-    _start_scheduler(app)
+    # Tắt được ở local/CI để không phát thông báo từ máy mỗi developer.
+    if get_bool_env("SCHEDULER_ENABLED", default=True):
+        _start_scheduler(app)
+    else:
+        app.logger.info("Scheduler disabled by SCHEDULER_ENABLED")
 
     return app
 
@@ -120,6 +125,17 @@ def ping():
         "daily_notifications_triggered": sent,
         "timestamp": datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
     }), 200
+
+
+@app.route("/healthz")
+def healthz():
+    """Health check không tạo notification hay thay đổi dữ liệu."""
+    try:
+        db.session.execute(text("SELECT 1"))
+        return jsonify({"status": "ok"}), 200
+    except Exception:
+        db.session.rollback()
+        return jsonify({"status": "unavailable"}), 503
 
 
 if __name__ == "__main__":

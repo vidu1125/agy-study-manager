@@ -4,7 +4,31 @@ Single Responsibility: chỉ cung cấp config values, không chứa logic nghi�
 """
 import os
 
+from dotenv import load_dotenv
+
+
+PROJECT_ROOT = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
+# Local .env hỗ trợ onboarding; biến của Docker/Railway luôn được ưu tiên.
+load_dotenv(os.path.join(PROJECT_ROOT, ".env"), override=False)
+
 DEFAULT_NTFY_TOPIC = "dung-hoctap-nhacnho-9f3k2xq8"
+
+
+def get_bool_env(name: str, default: bool = False) -> bool:
+    """Đọc biến bool nhất quán cho local, Docker và Railway."""
+    value = os.getenv(name)
+    if value is None or not value.strip():
+        return default
+    return value.strip().lower() in {"1", "true", "yes", "on"}
+
+
+def get_int_env(name: str, default: int, min_value: int = 1, max_value: int = 65535) -> int:
+    """Đọc port/số nguyên có giới hạn an toàn và fallback về mặc định."""
+    try:
+        value = int(os.getenv(name, str(default)))
+    except ValueError:
+        return default
+    return value if min_value <= value <= max_value else default
 
 
 def get_ntfy_topic() -> str:
@@ -14,8 +38,13 @@ def get_ntfy_topic() -> str:
 
 def get_db_path(app_root_path: str) -> str:
     """Resolve đường dẫn SQLite fallback khi không dùng cloud database."""
-    db_path = os.getenv("DB_PATH") or os.path.join(app_root_path, "database.db")
-    os.makedirs(os.path.dirname(os.path.abspath(db_path)), exist_ok=True)
+    configured_path = os.getenv("DB_PATH")
+    if configured_path:
+        db_path = configured_path if os.path.isabs(configured_path) else os.path.join(app_root_path, configured_path)
+    else:
+        db_path = os.path.join(app_root_path, "database.db")
+    db_path = os.path.abspath(db_path)
+    os.makedirs(os.path.dirname(db_path), exist_ok=True)
     return db_path
 
 

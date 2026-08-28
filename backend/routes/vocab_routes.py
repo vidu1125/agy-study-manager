@@ -41,6 +41,15 @@ def add_note(deck_id):
     return _result(lambda: VocabService.add_note(deck_id, request.get_json(silent=True) or {}), 201)
 
 
+@bp.route("/api/vocab/decks/<int:deck_id>/notes/import", methods=["POST"])
+def import_notes(deck_id):
+    """Nhập hàng loạt từ vựng từ JSON đã được browser đọc/kiểm tra."""
+    return _result(
+        lambda: VocabService.import_notes(deck_id, request.get_json(silent=True)),
+        201,
+    )
+
+
 @bp.route("/api/vocab/decks/<int:deck_id>/cards", methods=["GET"])
 def browse_cards(deck_id):
     return _result(lambda: {"cards": VocabService.browse_cards(

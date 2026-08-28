@@ -15,6 +15,8 @@ let vocabState = {
   browseTimer: null
 };
 
+let vocabImportMode = 'file';
+
 function escapeVocabHtml(value) {
   return String(value ?? '').replace(/[&<>'"]/g, char => ({
     '&': '&amp;', '<': '&lt;', '>': '&gt;', "'": '&#39;', '"': '&quot;'
@@ -112,6 +114,111 @@ function openVocabAddNote() {
   }
   fillVocabDeckOptions('vocabNoteDeck');
   openModal('modalAddVocabNote');
+}
+
+function openVocabJsonImport() {
+  if (!globalData.vocabDecks.length) {
+    alert('Hãy tạo một deck trước khi import từ vựng.');
+    openModal('modalCreateVocabDeck');
+    return;
+  }
+  fillVocabDeckOptions('vocabImportDeck');
+  document.getElementById('vocabImportFile').value = '';
+  document.getElementById('vocabImportJsonText').value = '';
+  setVocabImportMode('file');
+  setVocabImportStatus('');
+  openModal('modalVocabJsonImport');
+}
+
+function setVocabImportMode(mode) {
+  vocabImportMode = mode;
+  const isFile = mode === 'file';
+  document.getElementById('vocabImportFileTab').classList.toggle('active', isFile);
+  document.getElementById('vocabImportPasteTab').classList.toggle('active', !isFile);
+  document.getElementById('vocabImportFilePanel').style.display = isFile ? 'flex' : 'none';
+  document.getElementById('vocabImportPastePanel').style.display = isFile ? 'none' : 'flex';
+  setVocabImportStatus('');
+}
+
+function setVocabImportStatus(message, isError = false) {
+  const status = document.getElementById('vocabImportStatus');
+  if (!status) return;
+  status.textContent = message;
+  status.classList.toggle('error', isError);
+}
+
+async function copyVocabImportExample() {
+  const example = document.getElementById('vocabImportExample').textContent.trim();
+  try {
+    await navigator.clipboard.writeText(example);
+    setVocabImportStatus('Đã sao chép JSON mẫu. Bạn có thể chuyển sang “Dán JSON” và chỉnh sửa.');
+  } catch (_) {
+    setVocabImportStatus('Không thể sao chép tự động. Hãy chọn và sao chép JSON mẫu thủ công.', true);
+  }
+}
+
+async function submitVocabJsonImport() {
+  const deckId = Number(document.getElementById('vocabImportDeck').value);
+  if (!Number.isInteger(deckId) || deckId <= 0) {
+    setVocabImportStatus('Hãy chọn deck nhận từ vựng.', true);
+    return;
+  }
+
+  let rawJson = '';
+  if (vocabImportMode === 'file') {
+    const file = document.getElementById('vocabImportFile').files[0];
+    if (!file) {
+      setVocabImportStatus('Hãy chọn một file JSON.', true);
+      return;
+    }
+    if (file.size > 5 * 1024 * 1024) {
+      setVocabImportStatus('File JSON tối đa 5 MB. Hãy tách file thành nhiều lần import.', true);
+      return;
+    }
+    rawJson = await file.text();
+  } else {
+    rawJson = document.getElementById('vocabImportJsonText').value.trim();
+    if (!rawJson) {
+      setVocabImportStatus('Hãy dán nội dung JSON.', true);
+      return;
+    }
+  }
+
+  let parsed;
+  try {
+    parsed = JSON.parse(rawJson);
+  } catch (error) {
+    setVocabImportStatus(`JSON không hợp lệ: ${error.message}`, true);
+    return;
+  }
+  const payload = Array.isArray(parsed) ? { notes: parsed } : parsed;
+  if (!payload || !Array.isArray(payload.notes)) {
+    setVocabImportStatus('JSON cần có dạng { "notes": [ ... ] } hoặc một mảng [ ... ].', true);
+    return;
+  }
+
+  const submitButton = document.getElementById('vocabImportSubmit');
+  submitButton.disabled = true;
+  setVocabImportStatus(`Đang kiểm tra và import ${payload.notes.length} mục...`);
+  try {
+    const result = await vocabFetch(`/api/vocab/decks/${deckId}/notes/import`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload),
+    });
+    vocabState.selectedDeckId = deckId;
+    const deckData = await vocabFetch(`/api/vocab/decks/${deckId}`);
+    vocabState.selectedDeck = deckData.deck;
+    closeModal('modalVocabJsonImport');
+    await renderVocabWorkspace();
+    await showVocabBrowse();
+    const skipped = result.skipped_duplicates ? ` · bỏ qua ${result.skipped_duplicates} mục trùng` : '';
+    alert(`Đã import ${result.imported_notes} từ và tạo ${result.created_cards} thẻ${skipped}.`);
+  } catch (error) {
+    setVocabImportStatus(`Không thể import: ${error.message}`, true);
+  } finally {
+    submitButton.disabled = false;
+  }
 }
 
 async function createVocabDeck() {

@@ -26,6 +26,27 @@ AGY Study Manager giúp biến việc học thành một hệ thống dễ theo 
 | Phân tích từ vựng | Biểu đồ đường/cột/tròn, forecast ôn tập, quality trả lời và danh sách từ yếu |
 | Thông báo | Scheduler nhắc deadline, lịch học và lượt ôn qua kênh đã cấu hình |
 
+### Nhập từ vựng bằng JSON
+
+Trong mục **Từ vựng**, chọn **Import JSON**, chọn deck đích rồi chọn một trong hai cách: tải file `.json` hoặc dán trực tiếp nội dung JSON. `word` và `meaning` là bắt buộc; `ipa`, `example`, `tags` và `bidirectional` là tùy chọn. `bidirectional: true` (mặc định) tạo hai flashcard Anh–Việt và Việt–Anh.
+
+```json
+{
+  "notes": [
+    {
+      "word": "ubiquitous",
+      "meaning": "có mặt ở khắp nơi",
+      "ipa": "/juːˈbɪkwɪtəs/",
+      "example": "Smartphones are ubiquitous today.",
+      "tags": "academic technology",
+      "bidirectional": true
+    }
+  ]
+}
+```
+
+Có thể dùng trực tiếp một JSON array thay cho object có trường `notes`. Mỗi lần nhập tối đa 1.000 từ và file tối đa 5 MB. Các mục trùng cặp `word` + `meaning` trong cùng deck sẽ được bỏ qua, nên có thể import lại file an toàn.
+
 ## Tổng quan kiến trúc
 
 ```mermaid

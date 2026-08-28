@@ -1,0 +1,1295 @@
+<!DOCTYPE html>
+<html class="dark" lang="vi">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>EduPulse — Learning Hub & Study Manager</title>
+  <meta name="description" content="Hệ thống quản lý môn học đại học, tự học, tiến độ deadline và thời khóa biểu thông minh.">
+
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200&display=swap" rel="stylesheet">
+
+  <link rel="stylesheet" href="/static/css/style.css">
+</head>
+<body>
+
+  <div id="app-container">
+    <!-- Sidebar Navigation -->
+    <aside class="sidebar">
+      <!-- Brand Header -->
+      <div class="sidebar-header">
+        <div class="brand-badge">
+          <span class="material-symbols-outlined">school</span>
+        </div>
+        <div class="brand-text">
+          <h1>EDUPULSE</h1>
+          <p>LEARNING HUB // V2.6</p>
+        </div>
+      </div>
+
+      <!-- Quick Action Button in Sidebar -->
+      <button class="sidebar-action-btn" onclick="openModal('modalAddMonHoc')">
+        <span class="material-symbols-outlined" style="font-size:18px;">add</span>
+        <span>MÔN HỌC MỚI</span>
+      </button>
+
+      <div class="nav-section-label">NAVIGATION</div>
+
+      <!-- Navigation List -->
+      <ul class="nav-list">
+        <li class="nav-item active" data-tab="tab-dashboard">
+          <span class="material-symbols-outlined">dashboard</span>
+          <span>Dashboard</span>
+        </li>
+        <li class="nav-item" data-tab="tab-monhoc">
+          <span class="material-symbols-outlined">menu_book</span>
+          <span>Môn học</span>
+        </li>
+        <li class="nav-item" data-tab="tab-deadline">
+          <span class="material-symbols-outlined">schedule</span>
+          <span>Deadline &amp; Bài tập</span>
+        </li>
+        <li class="nav-item" data-tab="tab-tailieu">
+          <span class="material-symbols-outlined">folder_open</span>
+          <span>Tài liệu học tập</span>
+        </li>
+        <li class="nav-item" data-tab="tab-vocab">
+          <span class="material-symbols-outlined">psychology_alt</span>
+          <span>Học từ vựng</span>
+        </li>
+        <li class="nav-item" data-tab="tab-vocab-analytics">
+          <span class="material-symbols-outlined">monitoring</span>
+          <span>Phân tích từ vựng</span>
+        </li>
+        <li class="nav-item" data-tab="tab-nhatky">
+          <span class="material-symbols-outlined">timer</span>
+          <span>Nhật ký thời gian</span>
+        </li>
+        <li class="nav-item" data-tab="tab-muctieu">
+          <span class="material-symbols-outlined">flag</span>
+          <span>Mục tiêu</span>
+        </li>
+        <li class="nav-item" data-tab="tab-baocao">
+          <span class="material-symbols-outlined">assessment</span>
+          <span>Báo cáo &amp; Gia hạn</span>
+        </li>
+        <li class="nav-item" data-tab="tab-lichhoc">
+          <span class="material-symbols-outlined">calendar_month</span>
+          <span>Thời khóa biểu &amp; Lịch</span>
+        </li>
+      </ul>
+
+      <!-- Sidebar Footer Telemetry -->
+      <div class="sidebar-footer">
+        <div class="telemetry-card">
+          <div class="telemetry-status">
+            <div class="pulse-dot"></div>
+            <span class="telemetry-label">LIVE SYNC</span>
+          </div>
+          <span class="telemetry-value">99.8%</span>
+        </div>
+      </div>
+    </aside>
+
+    <!-- Main Workspace -->
+    <main class="main-wrapper">
+      <!-- Top Header -->
+      <header class="top-header">
+        <div class="header-left">
+          <div class="header-title-area">
+            <h1 id="page-title">Dashboard Tổng quan</h1>
+          </div>
+          <div class="header-search-bar">
+            <span class="material-symbols-outlined search-icon">search</span>
+            <input type="text" id="globalSearchInput" placeholder="Tìm kiếm nhanh môn học, task..." onkeyup="handleGlobalSearch(this.value)">
+          </div>
+        </div>
+
+        <div class="header-actions">
+          <div class="dropdown-quick-add">
+            <button class="btn-primary" id="btnToggleQuickAdd">
+              <span class="material-symbols-outlined" style="font-size:16px;">add</span>
+              <span>+ Thêm mới</span>
+              <span class="material-symbols-outlined" style="font-size:16px;">arrow_drop_down</span>
+            </button>
+            <div class="quick-menu" id="quickMenu">
+              <button onclick="openModal('modalAddMonHoc')">
+                <span class="material-symbols-outlined">menu_book</span>
+                <span>Thêm Môn học mới</span>
+              </button>
+              <button onclick="openModal('modalAddDeadline')">
+                <span class="material-symbols-outlined">schedule</span>
+                <span>Thêm Deadline / Nhiệm vụ</span>
+              </button>
+              <button onclick="openModal('modalAddLichHoc')">
+                <span class="material-symbols-outlined">calendar_add_on</span>
+                <span>Thêm Lịch học / Sự kiện</span>
+              </button>
+              <button onclick="openModal('modalLogTime')">
+                <span class="material-symbols-outlined">timer</span>
+                <span>Ghi nhận Thời gian học</span>
+              </button>
+              <button onclick="openModal('modalAddTaiLieu')">
+                <span class="material-symbols-outlined">post_add</span>
+                <span>Thêm Tài liệu học tập</span>
+              </button>
+              <button onclick="openVocabAddNote()">
+                <span class="material-symbols-outlined">psychology_alt</span>
+                <span>Thêm từ vựng</span>
+              </button>
+              <button onclick="openModal('modalAddMucTieu')">
+                <span class="material-symbols-outlined">flag</span>
+                <span>Thêm Mục tiêu mới</span>
+              </button>
+            </div>
+          </div>
+        </div>
+      </header>
+
+      <!-- Page Main Content Area -->
+      <div class="page-content">
+
+        <!-- TAB 1: DASHBOARD -->
+        <section id="tab-dashboard" class="tab-content active">
+          <!-- Hero Welcome Banner -->
+          <div class="welcome-hero-banner">
+            <div class="welcome-hero-tag">
+              <span class="material-symbols-outlined" style="font-size:14px;">auto_awesome</span>
+              <span>SEMESTER 1 • ACADEMIC YEAR 2024-2025</span>
+            </div>
+            <h2 class="welcome-hero-title">Chào mừng trở lại!</h2>
+            <p class="welcome-hero-desc">
+              Hệ thống theo dõi tiến độ học tập đại học &amp; tự học thông minh. Chuỗi học tập và nhắc nhở deadline đang được đồng bộ tự động.
+            </p>
+          </div>
+
+          <!-- Warnings & Notifications Container -->
+          <div id="dashboardWarnings"></div>
+
+          <!-- Metrics Row -->
+          <div class="metrics-row">
+            <div class="metric-card">
+              <div>
+                <div class="metric-label">Deadline sắp tới (7 ngày)</div>
+                <div class="metric-value" id="valMetricDeadlines">0</div>
+              </div>
+              <div class="metric-icon-box metric-icon-cyan">
+                <span class="material-symbols-outlined">schedule</span>
+              </div>
+            </div>
+
+            <div class="metric-card">
+              <div>
+                <div class="metric-label">Streak duy trì học tập</div>
+                <div class="metric-value" id="valMetricStreak">0 ngày</div>
+              </div>
+              <div class="metric-icon-box metric-icon-rose">
+                <span class="material-symbols-outlined">local_fire_department</span>
+              </div>
+            </div>
+
+            <div class="metric-card">
+              <div>
+                <div class="metric-label">Giờ học tuần này</div>
+                <div class="metric-value" id="valMetricWeeklyHours">0.0 giờ</div>
+              </div>
+              <div class="metric-icon-box metric-icon-emerald">
+                <span class="material-symbols-outlined">timer</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- Upcoming Deadlines Table -->
+          <div class="card-box">
+            <div class="section-title">
+              <span>DEADLINE SẮP TỚI (7 NGÀY TỚI)</span>
+              <button class="btn-sm" onclick="openModal('modalAddDeadline')">+ Thêm deadline</button>
+            </div>
+            <div class="table-responsive">
+              <table class="data-table">
+                <thead>
+                  <tr>
+                    <th>Môn học</th>
+                    <th>Tên bài tập / nhiệm vụ</th>
+                    <th>Hạn nộp</th>
+                    <th>Còn lại</th>
+                    <th>Ưu tiên</th>
+                    <th>Trạng thái</th>
+                    <th>Thao tác</th>
+                  </tr>
+                </thead>
+                <tbody id="tblDashboardDeadlines">
+                  <tr><td colspan="7" style="text-align:center; color:var(--text-muted);">Đang tải dữ liệu...</td></tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+
+          <!-- Active Goals Progress Section -->
+          <div class="card-box">
+            <div class="section-title">
+              <span>TIẾN ĐỘ MỤC TIÊU CÁ NHÂN</span>
+              <button class="btn-sm" onclick="openModal('modalAddMucTieu')">+ Thêm mục tiêu</button>
+            </div>
+            <div id="dashboardGoalsArea">
+              <p style="color:var(--text-muted);">Đang tải dữ liệu...</p>
+            </div>
+          </div>
+        </section>
+
+
+        <!-- TAB 2: MÔN HỌC -->
+        <section id="tab-monhoc" class="tab-content" style="display:none;">
+          <div class="card-box">
+            <div class="section-title">
+              <span>DANH SÁCH MÔN HỌC (TRƯỜNG &amp; TỰ HỌC)</span>
+              <button class="btn-primary" onclick="openModal('modalAddMonHoc')">
+                <span class="material-symbols-outlined" style="font-size:16px;">add</span>
+                <span>Thêm Môn học mới</span>
+              </button>
+            </div>
+            <div class="table-responsive">
+              <table class="data-table">
+                <thead>
+                  <tr>
+                    <th>Mã môn</th>
+                    <th>Tên môn</th>
+                    <th>Loại môn</th>
+                    <th>Giảng viên / Nguồn học</th>
+                    <th>Số tín chỉ</th>
+                    <th>Mức ưu tiên</th>
+                    <th>Trạng thái</th>
+                    <th>Thao tác</th>
+                  </tr>
+                </thead>
+                <tbody id="tblMonHoc">
+                  <tr><td colspan="8" style="text-align:center; color:var(--text-muted);">Đang tải dữ liệu...</td></tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </section>
+
+
+        <!-- TAB 3: DEADLINE -->
+        <section id="tab-deadline" class="tab-content" style="display:none;">
+          <div class="card-box">
+            <div class="section-title">
+              <span>TẤT CẢ DEADLINE &amp; NHIỆM VỤ</span>
+              <button class="btn-primary" onclick="openModal('modalAddDeadline')">
+                <span class="material-symbols-outlined" style="font-size:16px;">add</span>
+                <span>Thêm Deadline mới</span>
+              </button>
+            </div>
+            <div class="table-responsive">
+              <table class="data-table">
+                <thead>
+                  <tr>
+                    <th>Mã task</th>
+                    <th>Môn học</th>
+                    <th>Tên bài tập</th>
+                    <th>Hạn nộp</th>
+                    <th>Còn lại</th>
+                    <th>Ưu tiên</th>
+                    <th>Đặt bởi</th>
+                    <th>Tiến độ</th>
+                    <th>Trạng thái</th>
+                    <th>Thao tác</th>
+                  </tr>
+                </thead>
+                <tbody id="tblAllDeadlines">
+                  <tr><td colspan="10" style="text-align:center; color:var(--text-muted);">Đang tải dữ liệu...</td></tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </section>
+
+
+        <!-- TAB 4: TÀI LIỆU -->
+        <section id="tab-tailieu" class="tab-content" style="display:none;">
+          <div class="card-box">
+            <div class="section-title">
+              <span>KHO TÀI LIỆU HỌC TẬP</span>
+              <button class="btn-primary" onclick="openModal('modalAddTaiLieu')">
+                <span class="material-symbols-outlined" style="font-size:16px;">add</span>
+                <span>Thêm Tài liệu mới</span>
+              </button>
+            </div>
+            <div class="table-responsive">
+              <table class="data-table">
+                <thead>
+                  <tr>
+                    <th>Mã TL</th>
+                    <th>Môn học</th>
+                    <th>Tên tài liệu</th>
+                    <th>Loại</th>
+                    <th>Link truy cập</th>
+                    <th>Ngày thêm</th>
+                    <th>Gợi ý ôn tập</th>
+                    <th>Thao tác</th>
+                  </tr>
+                </thead>
+                <tbody id="tblTaiLieu">
+                  <tr><td colspan="8" style="text-align:center; color:var(--text-muted);">Đang tải dữ liệu...</td></tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </section>
+
+
+        <!-- TAB 5: HỌC TỪ VỰNG SPACED REPETITION -->
+        <section id="tab-vocab" class="tab-content" style="display:none;">
+          <div class="vocab-hero">
+            <div>
+              <div class="vocab-eyebrow">
+                <span class="material-symbols-outlined">neurology</span>
+                SPACED REPETITION ENGINE
+              </div>
+              <h2>Ghi nhớ đúng lúc, không học vẹt.</h2>
+              <p>Tạo bộ từ, học bằng flashcard hai chiều và để lịch ôn tự điều chỉnh theo mức độ bạn nhớ.</p>
+            </div>
+            <div class="vocab-toolbar">
+              <button class="btn-secondary" onclick="openModal('modalCreateVocabDeck')">
+                <span class="material-symbols-outlined">create_new_folder</span>
+                <span>Tạo deck</span>
+              </button>
+              <button class="btn-secondary" onclick="switchTab('tab-vocab-analytics')">
+                <span class="material-symbols-outlined">monitoring</span>
+                <span>Phân tích</span>
+              </button>
+              <button class="btn-primary" onclick="openVocabAddNote()">
+                <span class="material-symbols-outlined">add</span>
+                <span>Thêm từ</span>
+              </button>
+            </div>
+          </div>
+
+          <div class="vocab-workspace">
+            <section class="card-box vocab-decks-panel">
+              <div class="section-title">
+                <span>BỘ TỪ VỰNG CỦA BẠN</span>
+                <span class="vocab-live-dot"><i></i> Đồng bộ lịch ôn</span>
+              </div>
+              <div id="vocabDeckList" class="vocab-deck-list">
+                <p class="vocab-empty">Đang tải bộ từ vựng...</p>
+              </div>
+            </section>
+
+            <section id="vocabStudyPanel" class="card-box vocab-study-panel" style="display:none;">
+              <div class="section-title">
+                <div>
+                  <span>PHIÊN HỌC TẬP TRUNG</span>
+                  <small id="vocabStudyDeckName"></small>
+                </div>
+                <div class="vocab-study-actions">
+                  <span id="vocabRemaining" class="vocab-remaining"></span>
+                  <button class="btn-sm" onclick="endVocabSession()">
+                    <span class="material-symbols-outlined">close</span> Kết thúc
+                  </button>
+                </div>
+              </div>
+              <div id="vocabStudyCard" class="vocab-study-card"></div>
+              <p class="vocab-keyboard-hint"><kbd>Space</kbd> hiện đáp án · <kbd>1</kbd> Again · <kbd>2</kbd> Hard · <kbd>3</kbd> Good · <kbd>4</kbd> Easy</p>
+            </section>
+          </div>
+
+          <section id="vocabDetailPanel" class="card-box vocab-detail-panel" style="display:none;">
+            <div class="section-title vocab-detail-heading">
+              <span id="vocabDetailTitle">THẺ TRONG DECK</span>
+              <div class="vocab-detail-actions">
+                <button class="btn-sm" onclick="showVocabStats()">
+                  <span class="material-symbols-outlined">insights</span> Thống kê
+                </button>
+                <button class="btn-sm" onclick="openVocabConfig()">
+                  <span class="material-symbols-outlined">tune</span> Cấu hình
+                </button>
+              </div>
+            </div>
+            <div class="vocab-search-row">
+              <span class="material-symbols-outlined">search</span>
+              <input id="vocabSearch" class="form-control" type="search" placeholder="Tìm theo từ, nghĩa hoặc nhãn..." oninput="debouncedVocabBrowse()">
+            </div>
+            <div id="vocabStats" class="vocab-stats" style="display:none;"></div>
+            <div class="table-responsive">
+              <table class="data-table vocab-table">
+                <thead>
+                  <tr>
+                    <th>Từ &amp; nghĩa</th>
+                    <th>Chiều thẻ</th>
+                    <th>Trạng thái</th>
+                    <th>Ease</th>
+                    <th>Khoảng cách</th>
+                    <th>Ôn lại</th>
+                    <th>Thao tác</th>
+                  </tr>
+                </thead>
+                <tbody id="tblVocabCards">
+                  <tr><td colspan="7" style="text-align:center; color:var(--text-muted);">Chọn một deck để xem thẻ.</td></tr>
+                </tbody>
+              </table>
+            </div>
+          </section>
+        </section>
+
+
+        <!-- TAB 6: PHÂN TÍCH TIẾN ĐỘ TỪ VỰNG -->
+        <section id="tab-vocab-analytics" class="tab-content" style="display:none;">
+          <div class="vocab-analytics-header">
+            <div>
+              <div class="vocab-eyebrow">
+                <span class="material-symbols-outlined">monitoring</span>
+                LEARNING INTELLIGENCE
+              </div>
+              <h2>Phân tích tiến độ học từ vựng</h2>
+              <p>Theo dõi chất lượng ghi nhớ, khối lượng ôn sắp tới và các từ cần ưu tiên xử lý.</p>
+            </div>
+            <div class="analytics-controls">
+              <label for="vocabAnalyticsDeck">Phạm vi dữ liệu</label>
+              <select id="vocabAnalyticsDeck" class="form-control" onchange="renderVocabAnalytics()">
+                <option value="">Tất cả deck</option>
+              </select>
+              <button class="btn-sm" onclick="renderVocabAnalytics()" aria-label="Làm mới phân tích">
+                <span class="material-symbols-outlined">refresh</span>
+              </button>
+            </div>
+          </div>
+          <div id="vocabAnalyticsContent" class="vocab-analytics-content" aria-live="polite">
+            <div class="analytics-loading">Đang tổng hợp tiến độ học tập...</div>
+          </div>
+        </section>
+
+
+        <!-- TAB 5: NHẬT KÝ THỜI GIAN -->
+        <section id="tab-nhatky" class="tab-content" style="display:none;">
+          <div class="card-box">
+            <div class="section-title">
+              <span>LỊCH SỬ GHI NHẬN THỜI GIAN HỌC THỰC TẾ</span>
+              <button class="btn-primary" onclick="openModal('modalLogTime')">
+                <span class="material-symbols-outlined" style="font-size:16px;">add</span>
+                <span>Ghi nhận Giờ học mới</span>
+              </button>
+            </div>
+            <div class="table-responsive">
+              <table class="data-table">
+                <thead>
+                  <tr>
+                    <th>Mã log</th>
+                    <th>Ngày học</th>
+                    <th>Môn học</th>
+                    <th>Nhiệm vụ</th>
+                    <th>Giờ học</th>
+                    <th>Độ tập trung</th>
+                    <th>Ghi chú</th>
+                  </tr>
+                </thead>
+                <tbody id="tblNhatKy">
+                  <tr><td colspan="7" style="text-align:center; color:var(--text-muted);">Đang tải dữ liệu...</td></tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </section>
+
+
+        <!-- TAB 6: MỤC TIÊU -->
+        <section id="tab-muctieu" class="tab-content" style="display:none;">
+          <div class="card-box">
+            <div class="section-title">
+              <span>DANH SÁCH MỤC TIÊU CÁ NHÂN</span>
+              <button class="btn-primary" onclick="openModal('modalAddMucTieu')">
+                <span class="material-symbols-outlined" style="font-size:16px;">add</span>
+                <span>Thêm Mục tiêu mới</span>
+              </button>
+            </div>
+            <div class="table-responsive">
+              <table class="data-table">
+                <thead>
+                  <tr>
+                    <th>Mã MT</th>
+                    <th>Tên mục tiêu</th>
+                    <th>Loại môn liên quan</th>
+                    <th>Phân loại</th>
+                    <th>Thời hạn</th>
+                    <th>Các bước hành động</th>
+                    <th>Tiến độ</th>
+                    <th>Trạng thái</th>
+                  </tr>
+                </thead>
+                <tbody id="tblMucTieu">
+                  <tr><td colspan="8" style="text-align:center; color:var(--text-muted);">Đang tải dữ liệu...</td></tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </section>
+
+
+        <!-- TAB 7: BÁO CÁO & LỊCH SỬ GIA HẠN -->
+        <section id="tab-baocao" class="tab-content" style="display:none;">
+          <!-- Mobile Notification Panel -->
+          <div class="card-box" style="background:rgba(37,99,235,0.06); border-color:rgba(37,99,235,0.3);">
+            <div class="section-title" style="color:var(--primary-cyan);">
+              <span>KÊNH GỬI THÔNG BÁO PUSH VỀ ĐIỆN THOẠI (NTFY.SH)</span>
+              <button class="btn-primary" onclick="testMobilePushNotification()">
+                <span class="material-symbols-outlined" style="font-size:16px;">send</span>
+                <span>Gửi thử đến Phone</span>
+              </button>
+            </div>
+            <div style="font-size:13px; color:var(--text-body); line-height:1.6;">
+              <p>Ứng dụng tự động đẩy thông báo bài tập, nhắc giờ học &amp; deadline trực tiếp về điện thoại iOS/Android qua kênh <strong>ntfy.sh</strong>.</p>
+              <div style="margin-top:12px; display:flex; gap:12px; align-items:center; flex-wrap:wrap;">
+                <div><strong>Kênh (Topic) hiện tại:</strong> <code id="txtNtfyTopic" style="background:rgba(0,0,0,0.6); padding:4px 10px; border-radius:6px; border:1px solid rgba(34,211,238,0.3); color:var(--primary-cyan);">dung-hoctap-nhacnho-9f3k2xq8</code></div>
+                <a id="linkNtfySubscribe" href="https://ntfy.sh/dung-hoctap-nhacnho-9f3k2xq8" target="_blank" class="btn-sm" style="color:var(--primary-cyan); text-decoration:none; display:inline-flex; align-items:center; gap:4px;">
+                  <span class="material-symbols-outlined" style="font-size:14px;">open_in_new</span>
+                  <span>Mở link Subscribe trên Phone</span>
+                </a>
+              </div>
+              <div style="margin-top:14px; display:flex; gap:8px; flex-wrap:wrap;">
+                <button class="btn-primary" onclick="forceRemindNow()" style="background:linear-gradient(135deg,#dc2626,#991b1b); border:none; box-shadow:0 0 15px rgba(220,38,38,0.4);">
+                  <span class="material-symbols-outlined" style="font-size:16px;">notification_important</span>
+                  <span>Nhắc Ngay (0-2 ngày trước hạn)</span>
+                </button>
+                <button class="btn-sm" onclick="triggerUCNotification('uc13')">Test UC13 (Deadline)</button>
+                <button class="btn-sm" onclick="triggerUCNotification('uc14')">Test UC14 (Log Giờ)</button>
+                <button class="btn-sm" onclick="triggerUCNotification('uc15')">Test UC15 (Quá Tải)</button>
+                <button class="btn-sm" onclick="triggerUCNotification('uc10')">Test UC10 (Spaced Rep)</button>
+                <button class="btn-sm" onclick="triggerUCNotification('uc16')">Test UC16 (Báo Cáo Tuần)</button>
+              </div>
+              <div style="margin-top:12px; font-size:12px; color:rgba(255,255,255,0.4); background:rgba(0,0,0,0.3); padding:8px 12px; border-radius:8px; border:1px solid var(--border-color);">
+                Lưu ý: Thông báo tự động được gửi lúc <strong>07:00, 13:00, 19:00, 01:00</strong>. Bấm <strong>"Nhắc Ngay"</strong> để kích hoạt quét tức thì.
+              </div>
+            </div>
+          </div>
+
+          <div class="card-box">
+            <div class="section-title">BÁO CÁO BÀI HỌC TUẦN TỰ ĐỘNG (UC16)</div>
+            <div id="weeklyReportContainer" style="padding:4px 0;">
+              <p style="color:var(--text-muted);">Đang tổng hợp báo cáo...</p>
+            </div>
+          </div>
+
+          <div class="card-box">
+            <div class="section-title">LỊCH SỬ GIA HẠN DEADLINE TỰ ĐẶT (AUDIT LOG - UC07)</div>
+            <div class="table-responsive">
+              <table class="data-table">
+                <thead>
+                  <tr>
+                    <th>Mã gia hạn</th>
+                    <th>Bài tập</th>
+                    <th>Hạn cũ</th>
+                    <th>Hạn mới</th>
+                    <th>Ngày gia hạn</th>
+                    <th>Lý do</th>
+                  </tr>
+                </thead>
+                <tbody id="tblLichSuGiaHan">
+                  <tr><td colspan="6" style="text-align:center; color:var(--text-muted);">Đang tải dữ liệu...</td></tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </section>
+
+        <!-- TAB 8: THỜI KHÓA BIỂU & LỊCH HỌC (UC19 - UC26) -->
+        <section id="tab-lichhoc" class="tab-content" style="display:none;">
+          <!-- Legend Pin Point & Toolbar Header -->
+          <div class="card-box" style="margin-bottom:16px;">
+            <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:12px;">
+              <div style="display:flex; align-items:center; gap:8px;">
+                <button class="btn-sm" id="btnCalendarViewWeek" onclick="switchCalendarViewMode('week')" style="background:var(--primary-cyan); color:#020205; font-weight:700;">View Tuần</button>
+                <button class="btn-sm" id="btnCalendarViewMonth" onclick="switchCalendarViewMode('month')">View Tháng</button>
+                <div style="margin-left:12px; font-weight:700; font-size:14px; font-family:var(--font-mono); color:#ffffff;" id="txtCalendarPeriodRange">Tuần hiện tại</div>
+              </div>
+              <div style="display:flex; align-items:center; gap:8px;">
+                <button class="btn-sm" onclick="navigateCalendarPeriod(-1)">&lt; Trước</button>
+                <button class="btn-sm" onclick="navigateCalendarPeriod(0)">Hôm nay</button>
+                <button class="btn-sm" onclick="navigateCalendarPeriod(1)">Sau &gt;</button>
+                <button class="btn-primary" onclick="openModal('modalAddLichHoc')" style="margin-left:8px;">
+                  <span class="material-symbols-outlined" style="font-size:16px;">add</span>
+                  <span>Thêm Lịch / Sự kiện</span>
+                </button>
+              </div>
+            </div>
+
+            <!-- Pin Point Color Legend Bar -->
+            <div style="margin-top:14px; padding-top:14px; border-top:1px solid var(--border-color); display:flex; gap:18px; flex-wrap:wrap; font-size:12px; font-family:var(--font-mono); color:rgba(255,255,255,0.7);">
+              <div style="display:flex; align-items:center; gap:6px;">
+                <span style="width:10px; height:10px; border-radius:50%; background:#38bdf8; display:inline-block; box-shadow:0 0 8px rgba(56,189,248,0.6);"></span>
+                <span>Lịch học cố định (Xanh Sky)</span>
+              </div>
+              <div style="display:flex; align-items:center; gap:6px;">
+                <span style="width:10px; height:10px; border-radius:50%; background:#f43f5e; display:inline-block; box-shadow:0 0 8px rgba(244,63,94,0.6);"></span>
+                <span>Deadline Cao (Đỏ Rose)</span>
+              </div>
+              <div style="display:flex; align-items:center; gap:6px;">
+                <span style="width:10px; height:10px; border-radius:50%; background:#fb923c; display:inline-block; box-shadow:0 0 8px rgba(251,146,60,0.6);"></span>
+                <span>Deadline TB/Thấp (Cam Amber)</span>
+              </div>
+              <div style="display:flex; align-items:center; gap:6px;">
+                <span style="width:10px; height:10px; border-radius:50%; background:#a855f7; display:inline-block; box-shadow:0 0 8px rgba(168,85,247,0.6);"></span>
+                <span>Sự kiện 1 lần (Tím Purple)</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- Main Calendar Render Grid -->
+          <div class="card-box" style="padding:16px;">
+            <div id="calendarViewContainer">
+              <p style="text-align:center; padding:20px; color:var(--text-muted);">Đang tải lịch học &amp; deadline...</p>
+            </div>
+          </div>
+        </section>
+
+      </div>
+    </main>
+
+    <!-- Mobile Bottom Navigation Bar -->
+    <nav class="mobile-bottom-nav">
+      <ul class="mobile-bottom-nav-list">
+        <li class="mobile-nav-item active" data-tab="tab-dashboard">
+          <span class="material-symbols-outlined">dashboard</span>
+          <span>Dashboard</span>
+        </li>
+        <li class="mobile-nav-item" data-tab="tab-deadline">
+          <span class="material-symbols-outlined">schedule</span>
+          <span>Deadline</span>
+        </li>
+        <li class="mobile-nav-item" data-tab="tab-tailieu">
+          <span class="material-symbols-outlined">folder_open</span>
+          <span>Tài liệu</span>
+        </li>
+        <li class="mobile-nav-item" data-tab="tab-vocab">
+          <span class="material-symbols-outlined">psychology_alt</span>
+          <span>Từ vựng</span>
+        </li>
+        <li class="mobile-nav-item" data-tab="tab-nhatky">
+          <span class="material-symbols-outlined">timer</span>
+          <span>Nhật ký</span>
+        </li>
+      </ul>
+    </nav>
+  </div>
+
+
+  <!-- ==========================================================================
+       MODAL OVERLAYS (FUTURISTIC DARK GLASS DIALOGS)
+       ========================================================================== -->
+
+  <!-- 1. MODAL: THÊM MÔN HỌC MỚI (UC01 & UC02) -->
+  <div class="modal-overlay" id="modalAddMonHoc">
+    <div class="modal-card">
+      <div class="modal-header">
+        <h3>THÊM MÔN HỌC MỚI</h3>
+        <button class="modal-close" onclick="closeModal('modalAddMonHoc')">&times;</button>
+      </div>
+      <div class="modal-body">
+        <div class="form-group">
+          <label>Loại môn</label>
+          <div class="toggle-group">
+            <button type="button" class="toggle-btn active" id="btnToggleTruong" onclick="setMonHocType('Truong')">Trường</button>
+            <button type="button" class="toggle-btn" id="btnToggleTuHoc" onclick="setMonHocType('Tu_hoc')">Tự học</button>
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label>Mã môn học *</label>
+          <input type="text" id="inputMonMa" class="form-control" placeholder="VD: TOA101 hoặc TUHOC-IELTS">
+        </div>
+
+        <div class="form-group">
+          <label>Tên môn học *</label>
+          <input type="text" id="inputMonTen" class="form-control" placeholder="VD: Giải tích 2 / Luyện Reading IELTS">
+        </div>
+
+        <!-- Group trường -->
+        <div id="groupFieldTruong" class="form-row">
+          <div class="form-group">
+            <label>Giảng viên *</label>
+            <input type="text" id="inputMonGiangVien" class="form-control" placeholder="VD: TS. Nguyễn Văn A">
+          </div>
+          <div class="form-group">
+            <label>Số tín chỉ *</label>
+            <input type="number" id="inputMonTinChi" class="form-control" placeholder="VD: 3" min="1" max="10">
+          </div>
+        </div>
+
+        <!-- Group tự học -->
+        <div id="groupFieldTuHoc" class="form-group" style="display:none;">
+          <label>Nguồn học *</label>
+          <input type="text" id="inputMonNguonHoc" class="form-control" placeholder="VD: Udemy, Sách Cambridge 17, Coursera...">
+        </div>
+
+        <div class="form-group">
+          <label>Mức độ ưu tiên</label>
+          <select id="inputMonUuTien" class="form-control">
+            <option value="Cao">Cao</option>
+            <option value="Trung_binh" selected>Trung bình</option>
+            <option value="Thap">Thấp</option>
+          </select>
+        </div>
+
+        <div id="groupCheckboxGoal" class="form-group" style="display:none;">
+          <label style="display:flex; align-items:center; gap:8px; cursor:pointer;">
+            <input type="checkbox" id="chkCreateGoal" checked>
+            <span style="color:var(--text-body);">Tạo mục tiêu tương ứng cho môn tự học này</span>
+          </label>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn-secondary" onclick="closeModal('modalAddMonHoc')">Hủy</button>
+        <button class="btn-primary" onclick="submitAddMonHoc()">Lưu môn học</button>
+      </div>
+    </div>
+  </div>
+
+
+  <!-- 2. MODAL: THÊM DEADLINE MỚI (UC04 & UC05) -->
+  <div class="modal-overlay" id="modalAddDeadline">
+    <div class="modal-card">
+      <div class="modal-header">
+        <h3>THÊM DEADLINE / NHIỆM VỤ MỚI</h3>
+        <button class="modal-close" onclick="closeModal('modalAddDeadline')">&times;</button>
+      </div>
+      <div class="modal-body">
+        <div class="form-group">
+          <label>Chọn môn học *</label>
+          <select id="selectDeadlineMonHoc" class="form-control" onchange="onDeadlineSubjectChange()">
+            <option value="">-- Chọn môn học --</option>
+          </select>
+        </div>
+
+        <div class="form-group">
+          <label>Tên bài tập / nhiệm vụ *</label>
+          <input type="text" id="inputDeadlineTen" class="form-control" placeholder="VD: Làm bài tập Chương 5 / Giải 3 đề Listening">
+        </div>
+
+        <div class="form-row">
+          <div class="form-group">
+            <label>Loại bài</label>
+            <select id="selectDeadlineLoai" class="form-control">
+              <option value="Bai_tap">Bài tập</option>
+              <option value="Kiem_tra">Kiểm tra</option>
+              <option value="Do_an">Đồ án</option>
+              <option value="Thuyet_trinh">Thuyết trình</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label>Mức ưu tiên</label>
+            <select id="selectDeadlineUuTien" class="form-control">
+              <option value="Cao">Cao</option>
+              <option value="Trung_binh" selected>Trung bình</option>
+              <option value="Thap">Thấp</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="form-row">
+          <div class="form-group">
+            <label>Ngày giao</label>
+            <input type="date" id="inputDeadlineNgayGiao" class="form-control">
+          </div>
+          <div class="form-group">
+            <label>Hạn nộp *</label>
+            <input type="date" id="inputDeadlineHanNop" class="form-control">
+          </div>
+        </div>
+
+        <!-- Hidden mandatory field for Tu_dat deadlines -->
+        <div id="groupDeadlineOutput" class="form-group" style="display:none;">
+          <label>Output mong muốn * (Bắt buộc với môn Tự học)</label>
+          <textarea id="inputDeadlineOutput" class="form-control" rows="2" placeholder="VD: Đạt tối thiểu 7.5/9.0 từng bài test và nạp 20 từ vựng"></textarea>
+          <div style="font-size:11px; color:var(--primary-cyan); margin-top:4px;">* Trường này bắt buộc vì bạn tự đặt deadline cho bản thân</div>
+        </div>
+
+        <div class="form-group">
+          <label>Link tài liệu bài nộp (Tùy chọn)</label>
+          <input type="url" id="inputDeadlineLink" class="form-control" placeholder="https://drive.google.com/...">
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn-secondary" onclick="closeModal('modalAddDeadline')">Hủy</button>
+        <button class="btn-primary" onclick="submitAddDeadline()">Lưu Deadline</button>
+      </div>
+    </div>
+  </div>
+
+
+  <!-- 3. MODAL: CẬP NHẬT TRẠNG THÁI & OUTPUT (UC06 & UC08) -->
+  <div class="modal-overlay" id="modalUpdateStatus">
+    <div class="modal-card">
+      <div class="modal-header">
+        <h3 id="lblUpdateStatusTitle">CẬP NHẬT TIẾN ĐỘ DEADLINE</h3>
+        <button class="modal-close" onclick="closeModal('modalUpdateStatus')">&times;</button>
+      </div>
+      <div class="modal-body">
+        <input type="hidden" id="hdnUpdateDeadlineId">
+        
+        <div class="form-group">
+          <label>Trạng thái mới</label>
+          <select id="selectUpdateStatus" class="form-control" onchange="onStatusSelectChange()">
+            <option value="Chua_lam">Chưa làm</option>
+            <option value="Dang_lam">Đang làm</option>
+            <option value="Hoan_thanh">Hoàn thành</option>
+          </select>
+        </div>
+
+        <div class="form-group">
+          <label>% Hoàn thành: <strong id="lblSliderPct" style="color:var(--primary-cyan);">0%</strong></label>
+          <input type="range" id="inputUpdatePct" min="0" max="100" step="5" value="0" oninput="document.getElementById('lblSliderPct').textContent = this.value + '%'">
+        </div>
+
+        <!-- Extra fields for Tu_hoc deadline outputs -->
+        <div id="groupUpdateOutput" style="display:none;" class="form-group">
+          <label>Kết quả đạt được thực tế</label>
+          <textarea id="inputUpdateOutputResult" class="form-control" rows="2" placeholder="Nhập kết quả đã đạt được..."></textarea>
+
+          <label style="margin-top:10px;">Tự đánh giá kết quả</label>
+          <select id="selectUpdateSelfEval" class="form-control" onchange="onSelfEvalChange()">
+            <option value="Dat">Đạt</option>
+            <option value="Chua_dat">Chưa đạt</option>
+            <option value="Can_lam_lai">Cần làm lại</option>
+          </select>
+        </div>
+
+        <!-- Extension suggestion box if self-eval is Chua_dat -->
+        <div id="boxSuggestExtension" style="display:none;" class="warning-banner">
+          <div>
+            <div><strong>Gợi ý gia hạn:</strong> Kết quả chưa đạt, bạn có muốn kéo dài hạn nộp để làm lại không?</div>
+            <button class="btn-sm" style="margin-top:8px;" onclick="openExtensionModalFromStatus()">Gia hạn ngay</button>
+          </div>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn-secondary" onclick="closeModal('modalUpdateStatus')">Hủy</button>
+        <button class="btn-primary" onclick="submitUpdateStatus()">Lưu Cập Nhật</button>
+      </div>
+    </div>
+  </div>
+
+
+  <!-- 4. MODAL: GIA HẠN DEADLINE TỰ ĐẶT (UC07) -->
+  <div class="modal-overlay" id="modalExtendDeadline">
+    <div class="modal-card">
+      <div class="modal-header">
+        <h3>GIA HẠN DEADLINE TỰ ĐẶT</h3>
+        <button class="modal-close" onclick="closeModal('modalExtendDeadline')">&times;</button>
+      </div>
+      <div class="modal-body">
+        <input type="hidden" id="hdnExtendDeadlineId">
+        <div class="form-group">
+          <label>Nhiệm vụ: <strong id="lblExtendTaskName" style="color:#ffffff;"></strong></label>
+        </div>
+        <div class="form-group">
+          <label>Hạn nộp cũ: <strong id="lblExtendOldDate" style="color:var(--accent-amber);"></strong></label>
+        </div>
+        <div class="form-group">
+          <label>Hạn nộp mới *</label>
+          <input type="date" id="inputExtendNewDate" class="form-control">
+        </div>
+        <div class="form-group">
+          <label>Lý do gia hạn (Tùy chọn)</label>
+          <textarea id="inputExtendReason" class="form-control" rows="2" placeholder="VD: Cần thêm thời gian làm lại phần Reading..."></textarea>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn-secondary" onclick="closeModal('modalExtendDeadline')">Hủy</button>
+        <button class="btn-primary" onclick="submitExtendDeadline()">Xác nhận Gia hạn</button>
+      </div>
+    </div>
+  </div>
+
+
+  <!-- 5. MODAL: GHI NHẬN THỜI GIAN HỌC THỰC TẾ (UC11) -->
+  <div class="modal-overlay" id="modalLogTime">
+    <div class="modal-card">
+      <div class="modal-header">
+        <h3>GHI NHẬN THỜI GIAN HỌC THỰC TẾ</h3>
+        <button class="modal-close" onclick="closeModal('modalLogTime')">&times;</button>
+      </div>
+      <div class="modal-body">
+        <div class="form-group">
+          <label>Chọn nhiệm vụ liên quan *</label>
+          <select id="selectLogDeadline" class="form-control">
+            <option value="">-- Chọn deadline --</option>
+          </select>
+        </div>
+        <div class="form-row">
+          <div class="form-group">
+            <label>Ngày học</label>
+            <input type="date" id="inputLogNgay" class="form-control">
+          </div>
+          <div class="form-group">
+            <label>Số giờ thực tế đã học (giờ) *</label>
+            <input type="number" id="inputLogGio" class="form-control" step="0.5" min="0.1" placeholder="VD: 1.5">
+          </div>
+        </div>
+        <div class="form-group">
+          <label>Mức độ tập trung</label>
+          <select id="selectLogTapTrung" class="form-control">
+            <option value="Tot" selected>Tốt</option>
+            <option value="Trung_binh">Trung bình</option>
+            <option value="Xao_nhang">Bị xao nhãng</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label>Ghi chú (Tùy chọn)</label>
+          <textarea id="inputLogGhiChu" class="form-control" rows="2" placeholder="VD: Giải hết bài tập 5.1 và 5.2"></textarea>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn-secondary" onclick="closeModal('modalLogTime')">Hủy</button>
+        <button class="btn-primary" onclick="submitLogTime()">Lưu Nhật Ký</button>
+      </div>
+    </div>
+  </div>
+
+
+  <!-- 6. MODAL: THÊM TÀI LIỆU (UC09) -->
+  <div class="modal-overlay" id="modalAddTaiLieu">
+    <div class="modal-card">
+      <div class="modal-header">
+        <h3>THÊM TÀI LIỆU HỌC TẬP MỚI</h3>
+        <button class="modal-close" onclick="closeModal('modalAddTaiLieu')">&times;</button>
+      </div>
+      <div class="modal-body">
+        <div class="form-group">
+          <label>Môn học *</label>
+          <select id="selectTaiLieuMonHoc" class="form-control">
+            <option value="">-- Chọn môn học --</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label>Tên tài liệu *</label>
+          <input type="text" id="inputTaiLieuTen" class="form-control" placeholder="VD: Slide bài giảng Tích phân bội 3">
+        </div>
+        <div class="form-group">
+          <label>Loại tài liệu</label>
+          <select id="selectTaiLieuLoai" class="form-control">
+            <option value="Slide">Slide</option>
+            <option value="De_cuong">Đề cương</option>
+            <option value="Bai_giai">Bài giải</option>
+            <option value="Video">Video</option>
+            <option value="Sach">Sách</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label>Link truy cập (Tùy chọn)</label>
+          <input type="url" id="inputTaiLieuLink" class="form-control" placeholder="https://...">
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn-secondary" onclick="closeModal('modalAddTaiLieu')">Hủy</button>
+        <button class="btn-primary" onclick="submitAddTaiLieu()">Lưu Tài Liệu</button>
+      </div>
+    </div>
+  </div>
+
+
+  <!-- 7. MODAL: THÊM MỤC TIÊU -->
+  <div class="modal-overlay" id="modalAddMucTieu">
+    <div class="modal-card">
+      <div class="modal-header">
+        <h3>THÊM MỤC TIÊU CÁ NHÂN</h3>
+        <button class="modal-close" onclick="closeModal('modalAddMucTieu')">&times;</button>
+      </div>
+      <div class="modal-body">
+        <div class="form-group">
+          <label>Tên mục tiêu *</label>
+          <input type="text" id="inputMucTieuTen" class="form-control" placeholder="VD: Đạt GPA tổng kết Hè 3.5/4.0">
+        </div>
+        <div class="form-group">
+          <label>Môn học liên quan (Không bắt buộc)</label>
+          <select id="selectMucTieuMonHoc" class="form-control">
+            <option value="">-- Mục tiêu chung (Không chọn môn) --</option>
+          </select>
+        </div>
+        <div class="form-row">
+          <div class="form-group">
+            <label>Phân loại</label>
+            <select id="selectMucTieuLoai" class="form-control">
+              <option value="Ngan_han">Ngắn hạn</option>
+              <option value="Dai_han" selected>Dài hạn</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label>Thời hạn đến ngày</label>
+            <input type="date" id="inputMucTieuHan" class="form-control">
+          </div>
+        </div>
+        <div class="form-group">
+          <label>Các bước hành động</label>
+          <textarea id="inputMucTieuBuocHanhDong" class="form-control" rows="2" placeholder="VD: Làm bài tập đúng hạn 100%, ôn thi trước 2 tuần"></textarea>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn-secondary" onclick="closeModal('modalAddMucTieu')">Hủy</button>
+        <button class="btn-primary" onclick="submitAddMucTieu()">Lưu Mục Tiêu</button>
+      </div>
+    </div>
+  </div>
+
+
+  <!-- 8. MODAL: THÊM LỊCH HỌC / SỰ KIỆN (UC19, UC20, UC25) -->
+  <div class="modal-overlay" id="modalAddLichHoc">
+    <div class="modal-card">
+      <div class="modal-header">
+        <h3>THÊM LỊCH HỌC / SỰ KIỆN CÁ NHÂN</h3>
+        <button class="modal-close" onclick="closeModal('modalAddLichHoc')">&times;</button>
+      </div>
+      <div class="modal-body">
+        <div class="form-row">
+          <div class="form-group">
+            <label>Loại sự kiện *</label>
+            <select id="selectLichHocLoai" class="form-control" onchange="toggleLichHocTypeFields()">
+              <option value="Lich_hoc_co_dinh" selected>Lịch học cố định (Lặp lại hàng tuần)</option>
+              <option value="Su_kien_mot_lan">Sự kiện 1 lần (Bảo vệ đồ án, thi...)</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label>Môn học liên quan</label>
+            <select id="selectLichHocMonHoc" class="form-control">
+              <option value="">-- Sự kiện tự do (Không thuộc môn) --</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="form-group" id="grpLichHocTenSuKien" style="display:none;">
+          <label>Tên sự kiện *</label>
+          <input type="text" id="inputLichHocTenSuKien" class="form-control" placeholder="VD: Bảo vệ đồ án giữa kỳ, Họp nhóm...">
+        </div>
+
+        <!-- Field for Repeating (UC19) -->
+        <div class="form-group" id="grpLichHocThu">
+          <label>Thứ trong tuần *</label>
+          <select id="selectLichHocThu" class="form-control">
+            <option value="T2">Thứ 2</option>
+            <option value="T3">Thứ 3</option>
+            <option value="T4">Thứ 4</option>
+            <option value="T5">Thứ 5</option>
+            <option value="T6">Thứ 6</option>
+            <option value="T7">Thứ 7</option>
+            <option value="CN">Chủ Nhật</option>
+          </select>
+        </div>
+
+        <!-- Field for Single Event (UC20) -->
+        <div class="form-group" id="grpLichHocNgayCuThe" style="display:none;">
+          <label>Ngày diễn ra *</label>
+          <input type="date" id="inputLichHocNgayCuThe" class="form-control">
+        </div>
+
+        <div class="form-row">
+          <div class="form-group">
+            <label>Giờ bắt đầu *</label>
+            <input type="time" id="inputLichHocGioBatDau" class="form-control" value="07:00">
+          </div>
+          <div class="form-group">
+            <label>Giờ kết thúc *</label>
+            <input type="time" id="inputLichHocGioKetThuc" class="form-control" value="09:00">
+          </div>
+        </div>
+
+        <div class="form-row">
+          <div class="form-group">
+            <label>Hình thức học</label>
+            <select id="selectLichHocHinhThuc" class="form-control" onchange="toggleLichHocDiaDiemField()">
+              <option value="Offline" selected>Offline (Trực tiếp)</option>
+              <option value="Online">Online (Trực tuyến)</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label>Địa điểm / Link lớp *</label>
+            <input type="text" id="inputLichHocDiaDiem" class="form-control" placeholder="VD: Phòng A2-301 hoặc link Zoom/Teams">
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label>Ghi chú thêm</label>
+          <textarea id="inputLichHocGhiChu" class="form-control" rows="2" placeholder="Mang theo laptop, chuẩn bị slide..."></textarea>
+        </div>
+
+        <!-- UC25 Conflict Alert Panel -->
+        <div id="boxLichHocConflictAlert" style="display:none; background:rgba(251,146,60,0.1); border:1px solid rgba(251,146,60,0.4); padding:12px; border-radius:10px; margin-top:10px;">
+          <div style="color:var(--accent-amber); font-weight:700; margin-bottom:4px; font-family:var(--font-mono);" id="txtLichHocConflictMsg">⚠ Phát hiện xung đột thời gian!</div>
+          <div style="font-size:12px; color:rgba(255,255,255,0.7);">Bạn vẫn có thể nhấn <strong>Vẫn lưu</strong> bên dưới nếu muốn học dự thính hoặc trùng giờ online.</div>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn-secondary" onclick="closeModal('modalAddLichHoc')">Hủy</button>
+        <button class="btn-primary" id="btnSubmitAddLichHoc" onclick="submitAddLichHoc(false)">Lưu Lịch Học</button>
+      </div>
+    </div>
+  </div>
+
+
+  <!-- 9. MODAL: XEM CHI TIẾT NGÀY / PIN POINT (UC23) -->
+  <div class="modal-overlay" id="modalDayDetail">
+    <div class="modal-card" style="max-width:550px;">
+      <div class="modal-header">
+        <h3 id="txtDayDetailHeader">CHI TIẾT NGÀY HOẠT ĐỘNG</h3>
+        <button class="modal-close" onclick="closeModal('modalDayDetail')">&times;</button>
+      </div>
+      <div class="modal-body">
+        <div id="containerDayDetailItems">
+          <p style="color:var(--text-muted);">Đang tải chi tiết...</p>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn-secondary" onclick="closeModal('modalDayDetail')">Đóng</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- 10. MODAL: TẠO DECK TỪ VỰNG -->
+  <div class="modal-overlay" id="modalCreateVocabDeck">
+    <div class="modal-card" style="max-width:520px;">
+      <div class="modal-header">
+        <h3>TẠO BỘ TỪ VỰNG MỚI</h3>
+        <button class="modal-close" onclick="closeModal('modalCreateVocabDeck')">&times;</button>
+      </div>
+      <div class="modal-body">
+        <div class="vocab-modal-note">
+          <span class="material-symbols-outlined">auto_awesome</span>
+          Mỗi deck có lịch ôn riêng, tự điều chỉnh bằng phương pháp Spaced Repetition.
+        </div>
+        <div class="form-group">
+          <label>Tên deck *</label>
+          <input type="text" id="vocabDeckName" class="form-control" maxlength="120" placeholder="VD: IELTS Academic — Unit 01">
+        </div>
+        <div class="form-group">
+          <label>Mô tả</label>
+          <textarea id="vocabDeckDescription" class="form-control" rows="3" maxlength="500" placeholder="Chủ đề, nguồn học hoặc mục tiêu của bộ từ này..."></textarea>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn-secondary" onclick="closeModal('modalCreateVocabDeck')">Hủy</button>
+        <button class="btn-primary" onclick="createVocabDeck()">
+          <span class="material-symbols-outlined">create_new_folder</span> Tạo deck
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- 11. MODAL: THÊM TỪ VỰNG -->
+  <div class="modal-overlay" id="modalAddVocabNote">
+    <div class="modal-card" style="max-width:620px;">
+      <div class="modal-header">
+        <h3>THÊM TỪ VỰNG</h3>
+        <button class="modal-close" onclick="closeModal('modalAddVocabNote')">&times;</button>
+      </div>
+      <div class="modal-body">
+        <div class="form-group">
+          <label>Deck *</label>
+          <select id="vocabNoteDeck" class="form-control"></select>
+        </div>
+        <div class="form-row">
+          <div class="form-group">
+            <label>Từ / cụm từ *</label>
+            <input type="text" id="vocabWord" class="form-control" maxlength="255" placeholder="VD: ubiquitous">
+          </div>
+          <div class="form-group">
+            <label>Phiên âm IPA</label>
+            <input type="text" id="vocabIpa" class="form-control" maxlength="255" placeholder="/juːˈbɪkwɪtəs/">
+          </div>
+        </div>
+        <div class="form-group">
+          <label>Nghĩa *</label>
+          <textarea id="vocabMeaning" class="form-control" rows="3" maxlength="2000" placeholder="Nghĩa tiếng Việt, giải thích ngắn hoặc định nghĩa..."></textarea>
+        </div>
+        <div class="form-group">
+          <label>Ví dụ</label>
+          <textarea id="vocabExample" class="form-control" rows="2" maxlength="2000" placeholder="VD: Smartphones are now ubiquitous in modern life."></textarea>
+        </div>
+        <div class="form-row">
+          <div class="form-group">
+            <label>Nhãn</label>
+            <input type="text" id="vocabTags" class="form-control" maxlength="255" placeholder="academic technology">
+          </div>
+          <div class="form-group vocab-checkbox-group">
+            <label>Kiểu thẻ</label>
+            <label class="vocab-checkbox-label">
+              <input type="checkbox" id="vocabBidirectional" checked>
+              <span>Tạo cả thẻ Anh → Việt và Việt → Anh</span>
+            </label>
+          </div>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn-secondary" onclick="closeModal('modalAddVocabNote')">Hủy</button>
+        <button class="btn-primary" onclick="createVocabNote()">
+          <span class="material-symbols-outlined">add</span> Lưu từ &amp; tạo thẻ
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- 12. MODAL: CẤU HÌNH SPACED REPETITION -->
+  <div class="modal-overlay" id="modalVocabConfig">
+    <div class="modal-card" style="max-width:680px;">
+      <div class="modal-header">
+        <h3>CẤU HÌNH LỊCH ÔN</h3>
+        <button class="modal-close" onclick="closeModal('modalVocabConfig')">&times;</button>
+      </div>
+      <div class="modal-body">
+        <p id="vocabConfigDeckLabel" class="vocab-config-deck-label"></p>
+        <div class="vocab-config-grid">
+          <div class="form-group">
+            <label>Thẻ mới / ngày</label>
+            <input type="number" id="vocabCfgNew" class="form-control" min="0" max="999">
+          </div>
+          <div class="form-group">
+            <label>Lượt ôn / ngày</label>
+            <input type="number" id="vocabCfgReviews" class="form-control" min="0" max="9999">
+          </div>
+          <div class="form-group">
+            <label>Bước học (phút)</label>
+            <input type="text" id="vocabCfgLearning" class="form-control" placeholder="1 10">
+          </div>
+          <div class="form-group">
+            <label>Bước học lại (phút)</label>
+            <input type="text" id="vocabCfgRelearning" class="form-control" placeholder="10">
+          </div>
+          <div class="form-group">
+            <label>Khoảng tốt nghiệp (ngày)</label>
+            <input type="number" id="vocabCfgGraduate" class="form-control" min="1">
+          </div>
+          <div class="form-group">
+            <label>Khoảng Easy (ngày)</label>
+            <input type="number" id="vocabCfgEasy" class="form-control" min="1">
+          </div>
+          <div class="form-group">
+            <label>Ngưỡng leech</label>
+            <input type="number" id="vocabCfgLeech" class="form-control" min="1">
+          </div>
+          <div class="form-group">
+            <label>Xử lý leech</label>
+            <select id="vocabCfgLeechAction" class="form-control">
+              <option value="suspend">Tạm ẩn thẻ</option>
+              <option value="tag_only">Chỉ gắn nhãn</option>
+            </select>
+          </div>
+        </div>
+        <label class="vocab-checkbox-label vocab-bury-option">
+          <input type="checkbox" id="vocabCfgBury">
+          <span>Ẩn các thẻ cùng một từ đến ngày kế tiếp sau khi đã học một chiều</span>
+        </label>
+        <p class="vocab-config-help">Các bước học nhập bằng phút, cách nhau bởi dấu cách. Ví dụ: <strong>1 10</strong>.</p>
+      </div>
+      <div class="modal-footer">
+        <button class="btn-secondary" onclick="closeModal('modalVocabConfig')">Hủy</button>
+        <button class="btn-primary" onclick="saveVocabConfig()">
+          <span class="material-symbols-outlined">save</span> Lưu cấu hình
+        </button>
+      </div>
+    </div>
+  </div>
+
+
+  <script src="/static/js/app.js"></script>
+  <script src="/static/js/vocab_analytics.js"></script>
+</body>
+</html>

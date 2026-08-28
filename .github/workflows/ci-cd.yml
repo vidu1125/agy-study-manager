@@ -1,0 +1,64 @@
+name: CI/CD Pipeline
+
+on:
+  push:
+    branches: [ main, master ]
+  pull_request:
+    branches: [ main, master ]
+  workflow_dispatch:
+
+jobs:
+  test-and-validate:
+    name: Test & Validate Code
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python 3.11
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+          cache: 'pip'
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+
+      - name: Check code compilation & syntax
+        run: |
+          python -m py_compile run.py app.py
+          python -m py_compile backend/*.py backend/routes/*.py backend/services/*.py backend/notifications/*.py backend/migrations/*.py backend/presenters/*.py
+
+      - name: Smoke test App Initialization, Paths & Routes
+        run: |
+          python -c "
+          from backend.config import get_database_uri, get_ntfy_topic
+          print('Config Check OK')
+          print('Database URI (local):', get_database_uri('.'))
+          print('NTFY Topic:', get_ntfy_topic())
+
+          from run import app
+          with app.app_context():
+              rules = [str(r) for r in app.url_map.iter_rules()]
+              print(f'Successfully loaded {len(rules)} routes from run.py')
+              assert '/api/dashboard' in rules, 'Missing /api/dashboard route'
+              assert '/api/deadline' in rules, 'Missing /api/deadline route'
+              assert '/ping' in rules, 'Missing /ping healthcheck route'
+              assert app.template_folder.endswith('frontend/templates'), f'Wrong template folder: {app.template_folder}'
+              assert app.static_folder.endswith('frontend/static'), f'Wrong static folder: {app.static_folder}'
+          print('✅ All backend & frontend package smoke tests passed!')
+          "
+
+      - name: Test Database URI auto-conversion
+        run: |
+          python -c "
+          import os
+          from backend.config import get_database_uri
+          os.environ['DATABASE_URL'] = 'postgres://user:pass@supabase.co:5432/postgres'
+          uri = get_database_uri('.')
+          assert uri.startswith('postgresql://'), f'Failed conversion: {uri}'
+          print('✅ Supabase postgres:// -> postgresql:// conversion verified!')
+          "

@@ -9,11 +9,23 @@ let globalData = {
   materials: [],
   timeLogs: [],
   goals: [],
-  extensionLogs: []
+  extensionLogs: [],
+  vocabDecks: []
 };
 
 let currentMonHocType = 'Truong';
 let selectedDeadlineForUpdate = null;
+let vocabState = {
+  selectedDeckId: null,
+  selectedDeck: null,
+  sessionId: null,
+  currentCard: null,
+  revealed: false,
+  shownAt: null,
+  intervals: {},
+  remaining: { new: 0, learning: 0, review: 0 },
+  browseTimer: null
+};
 
 // ==========================================
 // INITIALIZATION
@@ -80,6 +92,8 @@ function switchTab(tabId) {
     'tab-monhoc': 'Quản lý Môn học',
     'tab-deadline': 'Quản lý Deadline & Nhiệm vụ',
     'tab-tailieu': 'Kho Tài liệu Học tập',
+    'tab-vocab': 'Học từ vựng Spaced Repetition',
+    'tab-vocab-analytics': 'Phân tích tiến độ từ vựng',
     'tab-nhatky': 'Nhật ký Thời gian Thực tế',
     'tab-muctieu': 'Mục tiêu Cá nhân',
     'tab-baocao': 'Báo cáo Tuần & Lịch sử Gia hạn',
@@ -92,6 +106,8 @@ function switchTab(tabId) {
   else if (tabId === 'tab-monhoc') renderMonHocTable();
   else if (tabId === 'tab-deadline') renderAllDeadlinesTable();
   else if (tabId === 'tab-tailieu') renderTaiLieuTable();
+  else if (tabId === 'tab-vocab') renderVocabWorkspace();
+  else if (tabId === 'tab-vocab-analytics') renderVocabAnalytics();
   else if (tabId === 'tab-nhatky') renderNhatKyTable();
   else if (tabId === 'tab-muctieu') renderMucTieuTable();
   else if (tabId === 'tab-baocao') renderReportAndExtensions();
@@ -131,7 +147,8 @@ async function loadAllData() {
       fetchMaterials(),
       fetchTimeLogs(),
       fetchGoals(),
-      fetchDashboardData()
+      fetchDashboardData(),
+      fetchVocabDecks()
     ]);
   } catch (err) {
     console.error('Lỗi khi tải dữ liệu:', err);
@@ -171,6 +188,13 @@ async function fetchTimeLogs() {
 async function fetchGoals() {
   const res = await fetch('/api/muc_tieu');
   globalData.goals = await res.json();
+}
+
+async function fetchVocabDecks() {
+  const res = await fetch('/api/vocab/decks');
+  if (!res.ok) throw new Error('Không thể tải bộ từ vựng');
+  globalData.vocabDecks = await res.json();
+  return globalData.vocabDecks;
 }
 
 
@@ -278,8 +302,8 @@ async function renderDashboard() {
 function renderDashboardWithPayload(payload) {
   const metrics = payload.metrics;
   document.getElementById('valMetricDeadlines').textContent = metrics.upcoming_deadlines_count;
-  document.getElementById('valMetricStreak').textContent = `${metrics.streak_days} ngày 🔥`;
-  document.getElementById('valMetricWeeklyHours').textContent = `${metrics.weekly_hours} giờ ⏱️`;
+  document.getElementById('valMetricStreak').textContent = `${metrics.streak_days} ngày`;
+  document.getElementById('valMetricWeeklyHours').textContent = `${metrics.weekly_hours} giờ`;
 
   // Banners area (Warnings, missing logs, overload warnings)
   const warnArea = document.getElementById('dashboardWarnings');
@@ -288,21 +312,21 @@ function renderDashboardWithPayload(payload) {
   // Overload alerts (UC15)
   if (payload.overload_alerts && payload.overload_alerts.length > 0) {
     payload.overload_alerts.forEach(alert => {
-      warnHtml += `<div class="warning-banner"><i class="fa-solid fa-triangle-exclamation"></i> ${alert.message}</div>`;
+      warnHtml += `<div class="warning-banner">[!] ${alert.message}</div>`;
     });
   }
 
   // Missing logs reminders (UC14)
   if (payload.missing_log_reminders && payload.missing_log_reminders.length > 0) {
     payload.missing_log_reminders.forEach(rem => {
-      warnHtml += `<div class="warning-banner" style="background:#FFF9E6; border-color:#FFE599; color:#996600;"><i class="fa-solid fa-pen-to-square"></i> ${rem.message}</div>`;
+      warnHtml += `<div class="warning-banner" style="background:#FFF9E6; border-color:#FFE599; color:#996600;">[*] ${rem.message}</div>`;
     });
   }
 
   // Subject overdue alerts
   if (payload.subject_overdue_counts && Object.keys(payload.subject_overdue_counts).length > 0) {
     for (const [subject, count] of Object.entries(payload.subject_overdue_counts)) {
-      warnHtml += `<div class="warning-banner"><i class="fa-solid fa-circle-exclamation"></i> Cảnh báo: Môn '${subject}' đang có ${count} deadline trễ hạn!</div>`;
+      warnHtml += `<div class="warning-banner">[!] Cảnh báo: Môn '${subject}' đang có ${count} deadline trễ hạn!</div>`;
     }
   }
 
@@ -311,7 +335,7 @@ function renderDashboardWithPayload(payload) {
   // Upcoming Deadlines Table
   const tbody = document.getElementById('tblDashboardDeadlines');
   if (!payload.upcoming_deadlines || payload.upcoming_deadlines.length === 0) {
-    tbody.innerHTML = '<tr><td colspan="7" style="text-align:center; color:var(--text-muted);">Không có deadline nào trong 7 ngày tới. Thật tuyệt vời! 🎉</td></tr>';
+    tbody.innerHTML = '<tr><td colspan="7" style="text-align:center; color:var(--text-muted);">Không có deadline nào trong 7 ngày tới.</td></tr>';
   } else {
     tbody.innerHTML = payload.upcoming_deadlines.map(d => `
       <tr>
@@ -390,7 +414,7 @@ function renderAllDeadlinesTable() {
     <tr>
       <td><code>${d.ma_bai_tap}</code></td>
       <td><strong>${d.ten_mon}</strong></td>
-      <td>${d.ten_bai_tap} ${d.link_tai_lieu ? `<a href="${d.link_tai_lieu}" target="_blank"><i class="fa-solid fa-link"></i></a>` : ''}</td>
+      <td>${d.ten_bai_tap} ${d.link_tai_lieu ? `<a href="${d.link_tai_lieu}" target="_blank" style="color:var(--primary-navy);">[&gt;]</a>` : ''}</td>
       <td>${formatDate(d.han_nop)}</td>
       <td>${d.so_ngay_con_lai >= 0 ? `${d.so_ngay_con_lai} ngày` : `<span style="color:#B3261E">Quá ${Math.abs(d.so_ngay_con_lai)} ngày</span>`}</td>
       <td>${renderPriorityChip(d.do_uu_tien)}</td>
@@ -429,7 +453,7 @@ function renderTaiLieuTable() {
       <td><strong>${m.ten_mon}</strong></td>
       <td>${m.ten_tai_lieu}</td>
       <td><span class="chip chip-priority-low">${m.loai_tai_lieu}</span></td>
-      <td>${m.link ? `<a href="${m.link}" target="_blank" style="color:var(--primary-navy); text-decoration:underline;">Mở link <i class="fa-solid fa-arrow-up-right-from-square"></i></a>` : 'Không có'}</td>
+      <td>${m.link ? `<a href="${m.link}" target="_blank" style="color:var(--primary-navy); text-decoration:underline;">Mở link [&gt;]</a>` : 'Không có'}</td>
       <td>${formatDate(m.ngay_them)}</td>
       <td><span style="font-size:12px; color:#2563eb;">Ôn lại (Spaced repetition)</span></td>
       <td>
@@ -506,21 +530,21 @@ async function renderReportAndExtensions() {
 
   const reportContainer = document.getElementById('weeklyReportContainer');
   reportContainer.innerHTML = `
-    <div style="background:#f8fafc; border:1px solid var(--border-color); padding:16px; border-radius:8px; display:grid; grid-template-columns:repeat(3, 1fr); gap:16px;">
+    <div style="background:rgba(255,255,255,0.02); backdrop-filter:blur(16px); border:1px solid var(--border-color); padding:20px; border-radius:14px; display:grid; grid-template-columns:repeat(3, 1fr); gap:16px;">
       <div>
-        <div style="font-size:12px; color:var(--text-muted);">TUẦN BÁO CÁO</div>
-        <div style="font-weight:600; font-size:16px;">${r.week_range}</div>
+        <div style="font-size:10px; font-family:var(--font-mono); color:var(--text-muted); text-transform:uppercase; letter-spacing:0.1em;">TUẦN BÁO CÁO</div>
+        <div style="font-weight:700; font-size:15px; font-family:var(--font-mono); color:#ffffff; margin-top:4px;">${r.week_range}</div>
       </div>
       <div>
-        <div style="font-size:12px; color:var(--text-muted);">DEADLINE HOÀN THÀNH</div>
-        <div style="font-weight:700; font-size:22px; color:#2F8558;">${r.completed_count} tasks</div>
+        <div style="font-size:10px; font-family:var(--font-mono); color:var(--text-muted); text-transform:uppercase; letter-spacing:0.1em;">DEADLINE HOÀN THÀNH</div>
+        <div style="font-weight:700; font-size:22px; font-family:var(--font-mono); color:var(--accent-emerald); margin-top:4px;">${r.completed_count} tasks</div>
       </div>
       <div>
-        <div style="font-size:12px; color:var(--text-muted);">TỔNG GIỜ HỌC TUẦN</div>
-        <div style="font-weight:700; font-size:22px; color:var(--primary-navy);">${r.total_study_hours} giờ</div>
+        <div style="font-size:10px; font-family:var(--font-mono); color:var(--text-muted); text-transform:uppercase; letter-spacing:0.1em;">TỔNG GIỜ HỌC TUẦN</div>
+        <div style="font-weight:700; font-size:22px; font-family:var(--font-mono); color:var(--primary-cyan); margin-top:4px;">${r.total_study_hours} giờ</div>
       </div>
     </div>
-    ${r.most_overdue_subject ? `<div style="margin-top:12px; font-size:14px; color:#B3261E;">⚠️ Môn bị trễ hạn nhiều task nhất tuần qua: <strong>${r.most_overdue_subject}</strong> (${r.most_overdue_count} bài tập trễ).</div>` : ''}
+    ${r.most_overdue_subject ? `<div class="warning-banner" style="margin-top:14px;">[!] Môn bị trễ hạn nhiều task nhất tuần qua: <strong>${r.most_overdue_subject}</strong> (${r.most_overdue_count} bài tập trễ).</div>` : ''}
   `;
 
   // Extension Logs
@@ -598,12 +622,12 @@ async function submitAddMonHoc() {
 
   const json = await res.json();
   if (res.ok) {
-    alert('✅ Tạo môn học thành công!');
+    alert('Tạo môn học thành công!');
     closeModal('modalAddMonHoc');
     await fetchSubjects();
     renderMonHocTable();
   } else {
-    alert(`❌ Error: ${json.error}`);
+    alert(`Lỗi: ${json.error}`);
   }
 }
 
@@ -657,13 +681,13 @@ async function submitAddDeadline() {
 
   const json = await res.json();
   if (res.ok) {
-    alert('✅ Tạo deadline thành công!');
+    alert('Tạo deadline thành công!');
     closeModal('modalAddDeadline');
     await fetchDeadlines();
     renderAllDeadlinesTable();
     renderDashboard();
   } else {
-    alert(`❌ Error: ${json.error}`);
+    alert(`Lỗi: ${json.error}`);
   }
 }
 
@@ -731,7 +755,7 @@ async function submitUpdateStatus() {
       });
     }
 
-    alert('✅ Cập nhật tiến độ thành công!');
+    alert('Cập nhật tiến độ thành công!');
     closeModal('modalUpdateStatus');
     await fetchDeadlines();
     renderAllDeadlinesTable();
@@ -766,7 +790,7 @@ async function submitExtendDeadline() {
 
   const json = await res.json();
   if (res.ok) {
-    alert('✅ Gia hạn deadline thành công!');
+    alert('Gia hạn deadline thành công!');
     closeModal('modalExtendDeadline');
     await fetchDeadlines();
     renderAllDeadlinesTable();
@@ -774,7 +798,7 @@ async function submitExtendDeadline() {
     renderReportAndExtensions();
 
   } else {
-    alert(`❌ Error: ${json.error}`);
+    alert(`Lỗi: ${json.error}`);
   }
 }
 
@@ -799,13 +823,13 @@ async function submitLogTime() {
 
   const json = await res.json();
   if (res.ok) {
-    alert(`✅ Ghi nhận ${gio_thuc_te} giờ học thành công! Streak của bạn: ${json.streak} ngày 🔥`);
+    alert(`Ghi nhận ${gio_thuc_te} giờ học thành công! Streak của bạn: ${json.streak} ngày`);
     closeModal('modalLogTime');
     await fetchTimeLogs();
     renderNhatKyTable();
     renderDashboard();
   } else {
-    alert(`❌ Error: ${json.error}`);
+    alert(`Lỗi: ${json.error}`);
   }
 }
 
@@ -823,7 +847,7 @@ async function submitAddTaiLieu() {
   });
 
   if (res.ok) {
-    alert('✅ Thêm tài liệu học tập thành công!');
+    alert('Thêm tài liệu học tập thành công!');
     closeModal('modalAddTaiLieu');
     await fetchMaterials();
     renderTaiLieuTable();
@@ -853,7 +877,7 @@ async function submitAddMucTieu() {
   });
 
   if (res.ok) {
-    alert('✅ Thêm mục tiêu cá nhân thành công!');
+    alert('Thêm mục tiêu cá nhân thành công!');
     closeModal('modalAddMucTieu');
     await fetchGoals();
     renderMucTieuTable();
@@ -868,7 +892,7 @@ async function testMobilePushNotification() {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
-        tieu_de: '🔔 Đơn cử Kiểm tra Push Notification',
+        tieu_de: 'Kiểm tra Push Notification',
         noi_dung: 'Chào bạn! Hệ thống Quản lý Học tập AGY STUDY đã kết nối thành công với app ntfy trên điện thoại của bạn.'
       })
     });
@@ -905,7 +929,7 @@ async function forceRemindNow() {
       if (json.message.includes('0 thông báo')) {
         alert(`ℹ️ Không có deadline nào còn 0-2 ngày để nhắc lúc này.\n\nHãy chắc chắn bạn đã tạo deadline với hạn nộp trong 2 ngày tới!`);
       } else {
-        alert(`✅ ${json.message}\n\n📱 Kiểm tra app ntfy trên điện thoại (Topic: ${json.topic})`);
+        alert(`${json.message}\n\nKiểm tra app ntfy trên điện thoại (Topic: ${json.topic})`);
       }
     } else {
       alert(`❌ Lỗi: ${json.message}`);
@@ -1041,7 +1065,7 @@ function renderWeeklyGrid(container, daysData, startStr, endStr) {
           : 'background: linear-gradient(135deg, #F59E0B 0%, #D97706 100%); box-shadow: 0 2px 8px rgba(245,158,11,0.3);';
         itemsHtml += `
           <div class="calendar-event-card" style="${bgStyle}" onclick="openDayDetailModal('${dStr}')">
-            <div style="font-weight:700; display:flex; align-items:center; gap:4px;"><i class="fa-solid fa-clock"></i> Deadline</div>
+            <div style="font-weight:700; display:flex; align-items:center; gap:4px;">[!] Deadline</div>
             <div style="font-weight:500; margin-top:2px;">${item.ten_bai_tap}</div>
           </div>
         `;
@@ -1051,9 +1075,9 @@ function renderWeeklyGrid(container, daysData, startStr, endStr) {
           : 'background: linear-gradient(135deg, #8B5CF6 0%, #6D28D9 100%); box-shadow: 0 2px 8px rgba(139,92,246,0.3);';
         itemsHtml += `
           <div class="calendar-event-card" style="${bgStyle}" onclick="openDayDetailModal('${dStr}')">
-            <div style="font-weight:700; display:flex; align-items:center; gap:4px;"><i class="fa-solid fa-book-open"></i> ${item.gio_bat_dau} - ${item.gio_ket_thuc}</div>
+            <div style="font-weight:700; display:flex; align-items:center; gap:4px;">[ ] ${item.gio_bat_dau} - ${item.gio_ket_thuc}</div>
             <div style="font-weight:600; margin-top:2px;">${item.ten_hien_thi}</div>
-            <div style="font-size:11px; opacity:0.9; margin-top:2px;">📍 ${item.dia_diem || item.hinh_thuc}</div>
+            <div style="font-size:11px; opacity:0.9; margin-top:2px;">[ ] ${item.dia_diem || item.hinh_thuc}</div>
           </div>
         `;
       }
@@ -1063,7 +1087,7 @@ function renderWeeklyGrid(container, daysData, startStr, endStr) {
     html += `
       <div class="calendar-day-col">
         <div class="calendar-day-header ${isToday ? 'today' : ''}">
-          ${dayDisplay} ${isToday ? '🔥' : ''}
+          ${dayDisplay} ${isToday ? '[ hom nay ]' : ''}
         </div>
         <div class="pin-points-bar" onclick="openDayDetailModal('${dStr}')" title="Click xem chi tiết ngày">
           ${pinHtml}
@@ -1119,7 +1143,7 @@ function renderMonthlyGrid(container, daysData, pivotStartDate) {
     html += `
       <div class="calendar-month-cell ${isToday ? 'today' : ''}" onclick="openDayDetailModal('${dStr}')">
         <div style="display:flex; justify-content:space-between; align-items:center;">
-          <strong style="font-size:14px; color:#1e293b;">${d} ${isToday ? '📌' : ''}</strong>
+          <strong style="font-size:14px; color:#1e293b;">${d} ${isToday ? '[ ]' : ''}</strong>
           <div style="display:flex; gap:3px;">${pinHtml}</div>
         </div>
         ${previewText}
@@ -1148,7 +1172,7 @@ async function openDayDetailModal(dateStr) {
     const items = dayInfo.items || [];
 
     if (items.length === 0) {
-      container.innerHTML = '<p style="color:#64748b; text-align:center; padding:16px;">Không có lịch học hoặc deadline nào trong ngày này. 🎉</p>';
+      container.innerHTML = '<p style="color:#64748b; text-align:center; padding:16px;">Không có lịch học hoặc deadline nào trong ngày này.</p>';
       return;
     }
 
@@ -1156,30 +1180,29 @@ async function openDayDetailModal(dateStr) {
     items.forEach(item => {
       if (item.is_deadline) {
         html += `
-          <div style="background:#fff1f2; border:1px solid #fecdd3; padding:12px; border-radius:8px; display:flex; justify-content:space-between; align-items:center;">
+          <div style="background:rgba(244,63,94,0.08); border:1px solid rgba(244,63,94,0.3); padding:14px; border-radius:12px; display:flex; justify-content:space-between; align-items:center; backdrop-filter:blur(10px);">
             <div>
-              <span class="chip chip-priority-high" style="margin-bottom:4px;">⏰ Deadline</span>
-              <div style="font-weight:600; color:#9f1239; margin-top:2px;">${item.ten_bai_tap}</div>
-              <div style="font-size:12px; color:#881337;">Môn: ${item.ma_mon} | Hạn: ${item.han_nop} | Ưu tiên: ${item.do_uu_tien}</div>
+              <span class="chip chip-priority-high" style="margin-bottom:6px;">Deadline</span>
+              <div style="font-weight:700; color:#ffffff; font-size:13px; margin-top:2px;">${item.ten_bai_tap}</div>
+              <div style="font-size:11px; font-family:var(--font-mono); color:var(--accent-rose); margin-top:2px;">Môn: ${item.ma_mon} | Hạn: ${item.han_nop} | Ưu tiên: ${item.do_uu_tien}</div>
             </div>
-            <button class="btn-sm" onclick="closeModal('modalDayDetail'); switchTab('tab-deadline');">Đi tới Deadline →</button>
+            <button class="btn-sm" onclick="closeModal('modalDayDetail'); switchTab('tab-deadline');">Đi tới Deadline &rarr;</button>
           </div>
         `;
       } else {
-        const badgeBg = item.loai_su_kien === 'Lich_hoc_co_dinh' ? '#2563EB' : '#7C3AED';
+        const badgeColor = item.loai_su_kien === 'Lich_hoc_co_dinh' ? 'var(--secondary-sky)' : 'var(--tertiary-purple)';
         html += `
-          <div style="background:#eff6ff; border:1px solid #bfdbfe; padding:12px; border-radius:8px; display:flex; justify-content:space-between; align-items:center;">
+          <div style="background:rgba(37,99,235,0.08); border:1px solid rgba(37,99,235,0.3); padding:14px; border-radius:12px; display:flex; justify-content:space-between; align-items:center; backdrop-filter:blur(10px);">
             <div>
-              <span class="chip" style="background:${badgeBg}; color:#ffffff; margin-bottom:4px;">📚 ${item.gio_bat_dau} - ${item.gio_ket_thuc}</span>
-              <div style="font-weight:600; color:#1e40af; margin-top:2px;">${item.ten_hien_thi}</div>
-              <div style="font-size:12px; color:#1e3a8a;">Hình thức: ${item.hinh_thuc} | Địa điểm: ${item.dia_diem || 'N/A'}</div>
-              ${item.ghi_chu ? `<div style="font-size:11px; color:#475569; margin-top:2px;">Ghi chú: ${item.ghi_chu}</div>` : ''}
+              <span class="chip" style="background:rgba(37,99,235,0.2); color:${badgeColor}; border:1px solid rgba(37,99,235,0.4); margin-bottom:6px;">${item.gio_bat_dau} - ${item.gio_ket_thuc}</span>
+              <div style="font-weight:700; color:#ffffff; font-size:13px; margin-top:2px;">${item.ten_hien_thi}</div>
+              <div style="font-size:11px; font-family:var(--font-mono); color:rgba(255,255,255,0.6); margin-top:2px;">Hình thức: ${item.hinh_thuc} | Địa điểm: ${item.dia_diem || 'N/A'}</div>
+              ${item.ghi_chu ? `<div style="font-size:11px; color:rgba(255,255,255,0.4); margin-top:2px;">Ghi chú: ${item.ghi_chu}</div>` : ''}
             </div>
-            <button class="btn-sm" style="color:#b91c1c; border-color:#fca5a5;" onclick="deleteLichHoc('${item.ma_lich}')">Xóa lịch</button>
+            <button class="btn-sm" style="color:var(--accent-rose); border-color:rgba(244,63,94,0.3);" onclick="deleteLichHoc('${item.ma_lich}')">Xóa lịch</button>
           </div>
         `;
       }
-
     });
 
     html += '</div>';
@@ -1265,7 +1288,7 @@ async function submitAddLichHoc(force = false) {
   }
 
   if (res.ok) {
-    alert('✅ Thêm lịch học / sự kiện thành công!');
+    alert('Thêm lịch học / sự kiện thành công!');
     boxAlert.style.display = 'none';
     btnSubmit.textContent = 'Lưu Lịch Học';
     btnSubmit.setAttribute('onclick', 'submitAddLichHoc(false)');
@@ -1280,7 +1303,7 @@ async function deleteLichHoc(maLich) {
   if (confirm(`Bạn có chắc muốn xóa lịch học này?`)) {
     const res = await fetch(`/api/lich_hoc/${maLich}`, { method: 'DELETE' });
     if (res.ok) {
-      alert('✅ Đã xóa lịch thành công!');
+      alert('Đã xóa lịch thành công!');
       closeModal('modalDayDetail');
       renderCalendarView();
     }
@@ -1288,3 +1311,419 @@ async function deleteLichHoc(maLich) {
 }
 
 
+// =============================================================================
+// HỌC TỪ VỰNG — SPACED REPETITION
+// =============================================================================
+
+function escapeVocabHtml(value) {
+  return String(value ?? '').replace(/[&<>'"]/g, char => ({
+    '&': '&amp;', '<': '&lt;', '>': '&gt;', "'": '&#39;', '"': '&quot;'
+  }[char]));
+}
+
+function vocabText(value) {
+  return escapeVocabHtml(value).replace(/\n/g, '<br>');
+}
+
+async function vocabFetch(url, options = {}) {
+  const res = await fetch(url, options);
+  const data = await res.json().catch(() => ({}));
+  if (!res.ok) throw new Error(data.error || data.message || 'Không thể xử lý yêu cầu');
+  return data;
+}
+
+async function renderVocabWorkspace() {
+  const container = document.getElementById('vocabDeckList');
+  if (!container) return;
+  try {
+    await fetchVocabDecks();
+    if (vocabState.selectedDeckId && !globalData.vocabDecks.some(d => d.id === vocabState.selectedDeckId)) {
+      vocabState.selectedDeckId = null;
+      vocabState.selectedDeck = null;
+    }
+    renderVocabDeckList();
+    if (vocabState.selectedDeckId) showVocabBrowse();
+  } catch (err) {
+    container.innerHTML = `<p class="vocab-empty vocab-error">${escapeVocabHtml(err.message)}</p>`;
+  }
+}
+
+function renderVocabDeckList() {
+  const container = document.getElementById('vocabDeckList');
+  const decks = globalData.vocabDecks;
+  if (!decks.length) {
+    container.innerHTML = `
+      <div class="vocab-empty">
+        <strong>Chưa có bộ từ vựng nào.</strong>
+        <span>Tạo deck đầu tiên, thêm từ và bắt đầu học theo lịch ôn tự động.</span>
+      </div>`;
+    return;
+  }
+  const totals = decks.reduce((sum, deck) => ({
+    new: sum.new + (deck.remaining?.new || 0),
+    review: sum.review + (deck.remaining?.review || 0),
+    learning: sum.learning + (deck.remaining?.learning || 0)
+  }), { new: 0, review: 0, learning: 0 });
+  container.innerHTML = `
+    ${decks.map(deck => `
+      <article class="vocab-deck-card ${deck.id === vocabState.selectedDeckId ? 'selected' : ''}">
+        <button class="vocab-deck-main" onclick="selectVocabDeck(${deck.id})">
+          <span class="vocab-deck-name">${escapeVocabHtml(deck.name)}</span>
+          <span class="vocab-deck-description">${escapeVocabHtml(deck.description || 'Basic Vocabulary · 2 chiều')}</span>
+          <span class="vocab-badges"><b class="vocab-badge new">${deck.remaining?.new || 0} mới</b><b class="vocab-badge review">${(deck.remaining?.review || 0) + (deck.remaining?.learning || 0)} ôn</b></span>
+        </button>
+        <button class="vocab-start-btn" onclick="startVocabSession(${deck.id})" title="Bắt đầu học">▶</button>
+      </article>`).join('')}
+    <div class="vocab-total">Tổng hôm nay: <strong>${totals.new} thẻ mới</strong> · <strong>${totals.review + totals.learning} thẻ cần ôn</strong></div>`;
+}
+
+async function selectVocabDeck(deckId) {
+  vocabState.selectedDeckId = deckId;
+  try {
+    const data = await vocabFetch(`/api/vocab/decks/${deckId}`);
+    vocabState.selectedDeck = data.deck;
+    renderVocabDeckList();
+    await showVocabBrowse();
+  } catch (err) {
+    alert(`❌ ${err.message}`);
+  }
+}
+
+function fillVocabDeckOptions(selectId) {
+  const select = document.getElementById(selectId);
+  if (!select) return;
+  select.innerHTML = globalData.vocabDecks.map(deck =>
+    `<option value="${deck.id}">${escapeVocabHtml(deck.name)}</option>`
+  ).join('');
+  if (vocabState.selectedDeckId) select.value = String(vocabState.selectedDeckId);
+}
+
+function openVocabAddNote() {
+  if (!globalData.vocabDecks.length) {
+    openModal('modalCreateVocabDeck');
+    return;
+  }
+  fillVocabDeckOptions('vocabNoteDeck');
+  openModal('modalAddVocabNote');
+}
+
+async function createVocabDeck() {
+  const name = document.getElementById('vocabDeckName').value.trim();
+  const description = document.getElementById('vocabDeckDescription').value.trim();
+  try {
+    const data = await vocabFetch('/api/vocab/decks', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ name, description })
+    });
+    vocabState.selectedDeckId = data.deck.id;
+    vocabState.selectedDeck = data.deck;
+    document.getElementById('vocabDeckName').value = '';
+    document.getElementById('vocabDeckDescription').value = '';
+    closeModal('modalCreateVocabDeck');
+    await renderVocabWorkspace();
+    await showVocabBrowse();
+  } catch (err) {
+    alert(`❌ ${err.message}`);
+  }
+}
+
+async function createVocabNote() {
+  const deckId = Number(document.getElementById('vocabNoteDeck').value);
+  const payload = {
+    word: document.getElementById('vocabWord').value.trim(),
+    ipa: document.getElementById('vocabIpa').value.trim(),
+    meaning: document.getElementById('vocabMeaning').value.trim(),
+    example: document.getElementById('vocabExample').value.trim(),
+    tags: document.getElementById('vocabTags').value.trim(),
+    bidirectional: document.getElementById('vocabBidirectional').checked
+  };
+  try {
+    const data = await vocabFetch(`/api/vocab/decks/${deckId}/notes`, {
+      method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload)
+    });
+    ['vocabWord', 'vocabIpa', 'vocabMeaning', 'vocabExample', 'vocabTags'].forEach(id => { document.getElementById(id).value = ''; });
+    vocabState.selectedDeckId = deckId;
+    closeModal('modalAddVocabNote');
+    await renderVocabWorkspace();
+    await showVocabBrowse();
+    alert(`Đã thêm từ và sinh ${data.cards.length} thẻ ôn tập.`);
+  } catch (err) {
+    alert(`❌ ${err.message}`);
+  }
+}
+
+async function startVocabSession(deckId) {
+  try {
+    const data = await vocabFetch(`/api/vocab/decks/${deckId}/sessions`, { method: 'POST' });
+    vocabState.selectedDeckId = deckId;
+    vocabState.selectedDeck = data.deck;
+    vocabState.sessionId = data.session_id;
+    document.getElementById('vocabStudyDeckName').textContent = data.deck.name;
+    document.getElementById('vocabStudyPanel').style.display = 'block';
+    document.getElementById('vocabDetailPanel').style.display = 'none';
+    await loadNextVocabCard();
+    document.getElementById('vocabStudyPanel').scrollIntoView({ behavior: 'smooth', block: 'start' });
+  } catch (err) {
+    alert(`❌ ${err.message}`);
+  }
+}
+
+async function loadNextVocabCard(nextPayload = null) {
+  try {
+    const payload = nextPayload || await vocabFetch(`/api/vocab/decks/${vocabState.selectedDeckId}/next`);
+    vocabState.currentCard = payload.card;
+    vocabState.revealed = false;
+    vocabState.shownAt = performance.now();
+    vocabState.intervals = {};
+    vocabState.remaining = payload.remaining;
+    renderVocabStudyCard();
+  } catch (err) {
+    document.getElementById('vocabStudyCard').innerHTML = `<p class="vocab-error">${escapeVocabHtml(err.message)}</p>`;
+  }
+}
+
+function renderVocabStudyCard() {
+  const area = document.getElementById('vocabStudyCard');
+  const label = document.getElementById('vocabRemaining');
+  const remaining = vocabState.remaining;
+  if (label) label.textContent = `${remaining.new} mới · ${remaining.learning + remaining.review} ôn`;
+  const card = vocabState.currentCard;
+  if (!card) {
+    area.innerHTML = `
+      <div class="vocab-finished"><div>✓</div><h3>Hoàn thành hàng đợi hiện tại!</h3><p>Các thẻ Learning sẽ xuất hiện lại khi đến thời gian của bước kế tiếp.</p><button class="btn-primary" onclick="endVocabSession()">Kết thúc phiên học</button></div>`;
+    return;
+  }
+  const stateName = { new: 'Thẻ mới', learning: 'Đang học', review: 'Ôn tập', relearning: 'Học lại' }[card.state] || card.state;
+  const answer = vocabState.revealed ? `
+    <div class="vocab-answer"><div>${vocabText(card.back)}</div>${card.example ? `<small>VD: ${vocabText(card.example)}</small>` : ''}</div>
+    <div class="vocab-answer-actions">
+      ${['again', 'hard', 'good', 'easy'].map((button, index) => `
+        <button class="vocab-answer-btn ${button}" onclick="answerVocabCard('${button}')"><b>${button === 'again' ? 'Again' : button[0].toUpperCase() + button.slice(1)}</b><span>${vocabState.intervals[button] || '…'}</span><i>phím ${index + 1}</i></button>`).join('')}
+    </div>` : `
+    <button class="vocab-reveal-btn" onclick="revealVocabAnswer()">Hiện đáp án <span>(Space)</span></button>`;
+  area.innerHTML = `
+    <div class="vocab-card-meta"><span>${escapeVocabHtml(card.direction_label)}</span><span>${stateName}</span></div>
+    <div class="vocab-front">${vocabText(card.front)}</div>
+    ${answer}`;
+}
+
+async function revealVocabAnswer() {
+  if (!vocabState.currentCard || vocabState.revealed) return;
+  vocabState.revealed = true;
+  renderVocabStudyCard();
+  try {
+    const data = await vocabFetch(`/api/vocab/decks/${vocabState.selectedDeckId}/cards/${vocabState.currentCard.id}/preview`);
+    vocabState.intervals = data.intervals;
+    renderVocabStudyCard();
+  } catch (err) {
+    console.warn('Không thể tải preview interval:', err);
+  }
+}
+
+async function answerVocabCard(button) {
+  if (!vocabState.currentCard || !vocabState.revealed) return;
+  const timeTaken = Math.round(performance.now() - vocabState.shownAt);
+  try {
+    const result = await vocabFetch(
+      `/api/vocab/decks/${vocabState.selectedDeckId}/cards/${vocabState.currentCard.id}/answer`,
+      { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({
+        answer_button: button, session_id: vocabState.sessionId, time_taken_ms: timeTaken
+      }) }
+    );
+    await fetchVocabDecks();
+    renderVocabDeckList();
+    await loadNextVocabCard(result.next);
+  } catch (err) {
+    alert(`❌ ${err.message}`);
+  }
+}
+
+async function endVocabSession() {
+  const sessionId = vocabState.sessionId;
+  vocabState.sessionId = null;
+  vocabState.currentCard = null;
+  document.getElementById('vocabStudyPanel').style.display = 'none';
+  if (sessionId) {
+    try {
+      const data = await vocabFetch(`/api/vocab/sessions/${sessionId}/end`, { method: 'POST' });
+      const session = data.session;
+      alert(`Phiên học đã lưu: ${session.new_cards_studied} thẻ mới · ${session.reviews_done} lượt ôn.`);
+    } catch (err) {
+      alert(`❌ ${err.message}`);
+    }
+  }
+  await renderVocabWorkspace();
+}
+
+async function showVocabBrowse() {
+  if (!vocabState.selectedDeckId) return;
+  const panel = document.getElementById('vocabDetailPanel');
+  const tbody = document.getElementById('tblVocabCards');
+  panel.style.display = 'block';
+  document.getElementById('vocabDetailTitle').textContent = `THẺ TRONG DECK${vocabState.selectedDeck ? ` — ${vocabState.selectedDeck.name}` : ''}`;
+  tbody.innerHTML = '<tr><td colspan="7" style="text-align:center;">Đang tải thẻ...</td></tr>';
+  try {
+    const search = document.getElementById('vocabSearch').value.trim();
+    const data = await vocabFetch(`/api/vocab/decks/${vocabState.selectedDeckId}/cards?search=${encodeURIComponent(search)}`);
+    if (!data.cards.length) {
+      tbody.innerHTML = '<tr><td colspan="7" style="text-align:center; color:#64748b;">Chưa có thẻ phù hợp.</td></tr>';
+      return;
+    }
+    tbody.innerHTML = data.cards.map(card => `
+      <tr>
+        <td><strong>${escapeVocabHtml(card.word)}</strong>${card.ipa ? `<small class="vocab-ipa">${escapeVocabHtml(card.ipa)}</small>` : ''}<div>${escapeVocabHtml(card.meaning)}</div>${card.tags ? `<small class="vocab-tags">#${escapeVocabHtml(card.tags).replace(/\s/g, ' #')}</small>` : ''}</td>
+        <td>${escapeVocabHtml(card.direction_label)}</td>
+        <td><span class="vocab-state ${card.queue === 'buried' ? 'buried' : card.state}">${card.queue === 'buried' ? 'Buried' : escapeVocabHtml(card.state)}</span>${card.is_leech ? ' <span title="Leech">🔴</span>' : ''}</td>
+        <td>${card.ease_factor}%</td><td>${card.interval_days ? `${card.interval_days}d` : '—'}</td><td>${formatVocabDue(card)}</td>
+        <td class="vocab-row-actions">
+          ${card.state === 'suspended' ? `<button class="btn-sm" onclick="unsuspendVocabCard(${card.id})">Bỏ ẩn</button>` : `<button class="btn-sm" onclick="suspendVocabCard(${card.id})">Tạm ẩn</button>`}
+          <button class="btn-sm" onclick="resetVocabCard(${card.id})">Reset</button>
+          <button class="btn-sm vocab-danger" onclick="deleteVocabNote(${card.note_id})">Xóa từ</button>
+        </td>
+      </tr>`).join('');
+  } catch (err) {
+    tbody.innerHTML = `<tr><td colspan="7" class="vocab-error">${escapeVocabHtml(err.message)}</td></tr>`;
+  }
+}
+
+function debouncedVocabBrowse() {
+  clearTimeout(vocabState.browseTimer);
+  vocabState.browseTimer = setTimeout(showVocabBrowse, 250);
+}
+
+function formatVocabDue(card) {
+  if (card.state === 'suspended') return 'Tạm ẩn';
+  if (card.queue === 'buried') return 'Ẩn đến ngày mới';
+  if (card.state === 'new') return 'Mới';
+  if (!card.due_at) return '—';
+  const due = new Date(card.due_at);
+  if (Number.isNaN(due.getTime())) return '—';
+  const minutes = Math.round((due - new Date()) / 60000);
+  if (minutes <= 0) return 'Đến hạn';
+  if (minutes < 60) return `${minutes} phút`;
+  if (minutes < 1440) return `${Math.ceil(minutes / 60)} giờ`;
+  return `${Math.ceil(minutes / 1440)} ngày`;
+}
+
+async function suspendVocabCard(cardId) {
+  try {
+    await vocabFetch(`/api/vocab/decks/${vocabState.selectedDeckId}/cards/${cardId}/suspend`, { method: 'POST' });
+    await showVocabBrowse();
+  } catch (err) { alert(`❌ ${err.message}`); }
+}
+
+async function unsuspendVocabCard(cardId) {
+  try {
+    await vocabFetch(`/api/vocab/decks/${vocabState.selectedDeckId}/cards/${cardId}/unsuspend`, { method: 'POST' });
+    await showVocabBrowse();
+  } catch (err) { alert(`❌ ${err.message}`); }
+}
+
+async function resetVocabCard(cardId) {
+  if (!confirm('Đặt lại lịch ôn của thẻ này về Mới?')) return;
+  try {
+    await vocabFetch(`/api/vocab/decks/${vocabState.selectedDeckId}/cards/${cardId}/reset`, { method: 'POST' });
+    await showVocabBrowse();
+  } catch (err) { alert(`❌ ${err.message}`); }
+}
+
+async function deleteVocabNote(noteId) {
+  if (!confirm('Xóa từ này cùng toàn bộ thẻ và lịch sử ôn liên quan?')) return;
+  try {
+    await vocabFetch(`/api/vocab/decks/${vocabState.selectedDeckId}/notes/${noteId}`, { method: 'DELETE' });
+    await fetchVocabDecks();
+    renderVocabDeckList();
+    await showVocabBrowse();
+  } catch (err) { alert(`❌ ${err.message}`); }
+}
+
+async function openVocabConfig() {
+  if (!vocabState.selectedDeckId) {
+    alert('Hãy chọn một deck trước.');
+    return;
+  }
+  try {
+    const data = await vocabFetch(`/api/vocab/decks/${vocabState.selectedDeckId}`);
+    vocabState.selectedDeck = data.deck;
+    const cfg = data.deck.config;
+    document.getElementById('vocabConfigDeckLabel').textContent = `Deck: ${data.deck.name}`;
+    document.getElementById('vocabCfgNew').value = cfg.new_cards_per_day;
+    document.getElementById('vocabCfgReviews').value = cfg.reviews_per_day;
+    document.getElementById('vocabCfgLearning').value = cfg.learning_steps;
+    document.getElementById('vocabCfgRelearning').value = cfg.relearning_steps;
+    document.getElementById('vocabCfgGraduate').value = cfg.graduating_interval_days;
+    document.getElementById('vocabCfgEasy').value = cfg.easy_interval_days;
+    document.getElementById('vocabCfgLeech').value = cfg.leech_threshold;
+    document.getElementById('vocabCfgLeechAction').value = cfg.leech_action;
+    document.getElementById('vocabCfgBury').checked = cfg.bury_siblings;
+    openModal('modalVocabConfig');
+  } catch (err) { alert(`❌ ${err.message}`); }
+}
+
+async function saveVocabConfig() {
+  const payload = {
+    new_cards_per_day: document.getElementById('vocabCfgNew').value,
+    reviews_per_day: document.getElementById('vocabCfgReviews').value,
+    learning_steps: document.getElementById('vocabCfgLearning').value,
+    relearning_steps: document.getElementById('vocabCfgRelearning').value,
+    graduating_interval_days: document.getElementById('vocabCfgGraduate').value,
+    easy_interval_days: document.getElementById('vocabCfgEasy').value,
+    leech_threshold: document.getElementById('vocabCfgLeech').value,
+    leech_action: document.getElementById('vocabCfgLeechAction').value,
+    bury_siblings: document.getElementById('vocabCfgBury').checked
+  };
+  try {
+    await vocabFetch(`/api/vocab/decks/${vocabState.selectedDeckId}/config`, {
+      method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload)
+    });
+    closeModal('modalVocabConfig');
+    await renderVocabWorkspace();
+  } catch (err) { alert(`❌ ${err.message}`); }
+}
+
+async function showVocabStats() {
+  if (!vocabState.selectedDeckId) return;
+  const area = document.getElementById('vocabStats');
+  area.style.display = 'block';
+  area.innerHTML = 'Đang tổng hợp thống kê...';
+  try {
+    const data = await vocabFetch(`/api/vocab/decks/${vocabState.selectedDeckId}/stats`);
+    const totalAnswers = Object.values(data.answers).reduce((a, b) => a + b, 0) || 1;
+    const heatmap = Object.entries(data.heatmap).sort(([a], [b]) => a.localeCompare(b)).slice(-42);
+    area.innerHTML = `
+      <div class="vocab-stat-grid">${Object.entries(data.counts).map(([state, count]) => `<div><b>${count}</b><span>${state}</span></div>`).join('')}</div>
+      <div class="vocab-answer-rate">Again ${Math.round(data.answers.again / totalAnswers * 100)}% · Hard ${Math.round(data.answers.hard / totalAnswers * 100)}% · Good ${Math.round(data.answers.good / totalAnswers * 100)}% · Easy ${Math.round(data.answers.easy / totalAnswers * 100)}%</div>
+      <div class="vocab-heatmap" title="Số lượt học 42 ngày gần đây">${heatmap.map(([, count]) => `<i style="opacity:${Math.min(1, 0.2 + count / 8)}"></i>`).join('') || '<span>Chưa có lượt ôn nào.</span>'}</div>`;
+  } catch (err) { area.innerHTML = `<span class="vocab-error">${escapeVocabHtml(err.message)}</span>`; }
+}
+
+document.addEventListener('keydown', event => {
+  if (document.activeElement && ['INPUT', 'TEXTAREA', 'SELECT'].includes(document.activeElement.tagName)) return;
+  const panel = document.getElementById('vocabStudyPanel');
+  if (!panel || panel.style.display === 'none' || !vocabState.currentCard) return;
+  if ((event.code === 'Space' || event.code === 'Enter') && !vocabState.revealed) {
+    event.preventDefault();
+    revealVocabAnswer();
+  }
+  const buttons = { '1': 'again', '2': 'hard', '3': 'good', '4': 'easy' };
+  if (vocabState.revealed && buttons[event.key]) {
+    event.preventDefault();
+    answerVocabCard(buttons[event.key]);
+  }
+});
+
+// ==========================================
+// GLOBAL SEARCH HANDLER (TOP HEADER)
+// ==========================================
+function handleGlobalSearch(query) {
+  const q = (query || '').toLowerCase().trim();
+  const rows = document.querySelectorAll('.data-table tbody tr');
+  rows.forEach(row => {
+    const text = row.textContent.toLowerCase();
+    if (!q || text.includes(q)) {
+      row.style.display = '';
+    } else {
+      row.style.display = 'none';
+    }
+  });
+}

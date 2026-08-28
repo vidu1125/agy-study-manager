@@ -1,0 +1,6 @@
+{
+  "name": "EduPulse - Learning Hub",
+  "description": "Hệ thống quản lý môn học trường đại học và tự học thông minh với thời khóa biểu, tiến độ và bảng theo dõi học tập.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

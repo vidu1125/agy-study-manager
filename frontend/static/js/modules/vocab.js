@@ -12,7 +12,8 @@ let vocabState = {
   shownAt: null,
   intervals: {},
   remaining: { new: 0, learning: 0, review: 0 },
-  browseTimer: null
+  browseTimer: null,
+  answering: false
 };
 
 let vocabImportMode = 'file';
@@ -288,8 +289,9 @@ async function loadNextVocabCard(nextPayload = null) {
     vocabState.currentCard = payload.card;
     vocabState.revealed = false;
     vocabState.shownAt = performance.now();
-    vocabState.intervals = {};
+    vocabState.intervals = payload.intervals || {};
     vocabState.remaining = payload.remaining;
+    vocabState.answering = false;
     renderVocabStudyCard();
   } catch (err) {
     document.getElementById('vocabStudyCard').innerHTML = `<p class="vocab-error">${escapeVocabHtml(err.message)}</p>`;
@@ -312,7 +314,7 @@ function renderVocabStudyCard() {
     <div class="vocab-answer"><div>${vocabText(card.back)}</div>${card.example ? `<small>VD: ${vocabText(card.example)}</small>` : ''}</div>
     <div class="vocab-answer-actions">
       ${['again', 'hard', 'good', 'easy'].map((button, index) => `
-        <button class="vocab-answer-btn ${button}" onclick="answerVocabCard('${button}')"><b>${button === 'again' ? 'Again' : button[0].toUpperCase() + button.slice(1)}</b><span>${vocabState.intervals[button] || '…'}</span><i>phím ${index + 1}</i></button>`).join('')}
+        <button class="vocab-answer-btn ${button}" onclick="answerVocabCard('${button}')" ${vocabState.answering ? 'disabled' : ''}><b>${button === 'again' ? 'Again' : button[0].toUpperCase() + button.slice(1)}</b><span>${vocabState.intervals[button] || '…'}</span><i>phím ${index + 1}</i></button>`).join('')}
     </div>` : `
     <button class="vocab-reveal-btn" onclick="revealVocabAnswer()">Hiện đáp án <span>(Space)</span></button>`;
   area.innerHTML = `
@@ -325,18 +327,21 @@ async function revealVocabAnswer() {
   if (!vocabState.currentCard || vocabState.revealed) return;
   vocabState.revealed = true;
   renderVocabStudyCard();
-  try {
-    const data = await vocabFetch(`/api/vocab/decks/${vocabState.selectedDeckId}/cards/${vocabState.currentCard.id}/preview`);
-    vocabState.intervals = data.intervals;
-    renderVocabStudyCard();
-  } catch (err) {
-    console.warn('Không thể tải preview interval:', err);
-  }
+}
+
+function setVocabAnswerPending(button) {
+  document.querySelectorAll('.vocab-answer-btn').forEach(element => {
+    element.disabled = true;
+    element.classList.add('is-submitting');
+    if (element.classList.contains(button)) element.classList.add('is-submitting-choice');
+  });
 }
 
 async function answerVocabCard(button) {
-  if (!vocabState.currentCard || !vocabState.revealed) return;
+  if (!vocabState.currentCard || !vocabState.revealed || vocabState.answering) return;
   const timeTaken = Math.round(performance.now() - vocabState.shownAt);
+  vocabState.answering = true;
+  setVocabAnswerPending(button);
   try {
     const result = await vocabFetch(
       `/api/vocab/decks/${vocabState.selectedDeckId}/cards/${vocabState.currentCard.id}/answer`,
@@ -344,10 +349,10 @@ async function answerVocabCard(button) {
         answer_button: button, session_id: vocabState.sessionId, time_taken_ms: timeTaken
       }) }
     );
-    await fetchVocabDecks();
-    renderVocabDeckList();
     await loadNextVocabCard(result.next);
   } catch (err) {
+    vocabState.answering = false;
+    renderVocabStudyCard();
     alert(`Lỗi: ${err.message}`);
   }
 }

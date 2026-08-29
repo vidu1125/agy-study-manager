@@ -356,8 +356,13 @@ class VocabService:
         now = _now()
         VocabService._release_buried(deck, now)
         card = VocabService._pick_next_card(deck, now)
+        card_payload = VocabService._card_payload(card) if card else None
         return {
-            "card": VocabService._card_payload(card) if card else None,
+            "card": card_payload,
+            "intervals": {
+                button: VocabService._preview(card, button, deck.config)
+                for button in _BUTTONS
+            } if card else {},
             "remaining": VocabService._remaining(deck, now),
         }
 
@@ -720,8 +725,7 @@ class VocabService:
             card.left_steps = len(steps)
             card.due_at = now + datetime.timedelta(minutes=steps[0])
         elif button == "hard":
-            # Learning: Hard lặp lại bước hiện tại, không đi đến bước sau.
-            card.due_at = now + datetime.timedelta(minutes=steps[current_index])
+            card.due_at = now + datetime.timedelta(minutes=VocabService._hard_learning_delay(steps, current_index))
         elif button == "good":
             next_index = current_index + 1
             if next_index < len(steps):
@@ -801,6 +805,15 @@ class VocabService:
         if interval < 2.5:
             return interval
         return interval * random.uniform(0.95, 1.05) if interval < 7 else interval * random.uniform(0.90, 1.10)
+
+    @staticmethod
+    def _hard_learning_delay(steps: list[int], current_index: int) -> int:
+        """Quy tắc Hard của Anki: bước đầu là trung bình 2 bước đầu; các bước sau lặp lại bước hiện tại."""
+        if current_index == 0:
+            if len(steps) >= 2:
+                return math.ceil((steps[0] + steps[1]) / 2)
+            return min(steps[0] + 24 * 60, math.ceil(steps[0] * 1.5))
+        return steps[current_index]
 
     # --------------------------------------------------------------- Internals
     @staticmethod
@@ -950,7 +963,7 @@ class VocabService:
             if button == "again":
                 return _format_interval(minutes=steps[0])
             if button == "hard":
-                return _format_interval(minutes=steps[current])
+                return _format_interval(minutes=VocabService._hard_learning_delay(steps, current))
             if button == "good" and current + 1 < len(steps):
                 return _format_interval(minutes=steps[current + 1])
             return _format_interval(days=config.easy_interval_days if button == "easy" else config.graduating_interval_days)

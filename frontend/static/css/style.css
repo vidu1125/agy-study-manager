@@ -1562,6 +1562,13 @@ input[type=range] {
 .vocab-answer-btn.hard:hover { border-color: var(--accent-amber); background: var(--accent-amber-bg); }
 .vocab-answer-btn.good:hover { border-color: var(--accent-emerald); background: var(--accent-emerald-bg); }
 .vocab-answer-btn.easy:hover { border-color: var(--primary-cyan); background: var(--primary-cyan-bg); }
+.vocab-answer-btn:disabled { cursor: wait; }
+.vocab-answer-btn.is-submitting { opacity: 0.55; pointer-events: none; }
+.vocab-answer-btn.is-submitting-choice {
+  opacity: 1;
+  transform: translateY(-1px) scale(0.99);
+  box-shadow: 0 0 0 1px currentColor, 0 0 18px rgba(34, 211, 238, 0.14);
+}
 
 .vocab-finished > div {
   display: grid;

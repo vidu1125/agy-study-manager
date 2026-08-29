@@ -4,6 +4,11 @@
    ========================================================================== */
 
 let currentCalendarMode = 'week';
+function formatCalendarDate(dateValue) {
+  const date = new Date(dateValue);
+  return new Date(date.getTime() - date.getTimezoneOffset() * 60000).toISOString().slice(0, 10);
+}
+
 let calendarPivotDate = new Date();
 
 function switchCalendarViewMode(mode) {
@@ -45,7 +50,7 @@ function navigateCalendarPeriod(offset) {
 
 function getStartAndEndDatesForCalendar() {
   const d = new Date(calendarPivotDate);
-  const formatISO = dt => dt.toISOString().split('T')[0];
+  const formatISO = formatCalendarDate;
 
   let startDate, endDate;
 
@@ -94,13 +99,49 @@ async function renderCalendarView() {
     } else {
       renderMonthlyGrid(container, daysData, startDate);
     }
+    renderCalendarScheduleSummary(daysData);
   } catch (err) {
     container.innerHTML = `<p style="color:var(--accent-rose); text-align:center;">Lỗi tải dữ liệu lịch: ${err.message}</p>`;
   }
 }
 
+function formatScheduleMinutes(totalMinutes) {
+  if (!totalMinutes) return '0 phút';
+  const hours = Math.floor(totalMinutes / 60);
+  const minutes = totalMinutes % 60;
+  if (!hours) return minutes + ' phút';
+  return minutes ? hours + ' giờ ' + minutes + ' phút' : hours + ' giờ';
+}
+
+function renderCalendarScheduleSummary(daysData) {
+  const container = document.getElementById('scheduleWeekSummary');
+  if (!container) return;
+  const sessions = Object.entries(daysData).flatMap(([date, day]) =>
+    (day.items || [])
+      .filter(item => !item.is_deadline && item.gio_bat_dau && item.gio_ket_thuc)
+      .map(item => ({ ...item, date }))
+  );
+  const totalMinutes = sessions.reduce((total, item) => {
+    const [startHours, startMinutes] = item.gio_bat_dau.split(':').map(Number);
+    const [endHours, endMinutes] = item.gio_ket_thuc.split(':').map(Number);
+    return total + (endHours * 60 + endMinutes) - (startHours * 60 + startMinutes);
+  }, 0);
+  const periodLabel = currentCalendarMode === 'week' ? 'tuần đang xem' : 'khoảng thời gian đang xem';
+
+  if (!sessions.length) {
+    container.innerHTML = '<span class="material-symbols-outlined">event_busy</span><div><strong>Chưa có buổi học trong ' + periodLabel + '</strong><p>Thêm một khung giờ để bắt đầu xây dựng nhịp học.</p></div>';
+    return;
+  }
+
+  container.innerHTML =
+    '<span class="material-symbols-outlined">event_available</span>' +
+    '<div><strong>' + sessions.length + ' buổi · ' + formatScheduleMinutes(totalMinutes) + '</strong>' +
+    '<p>Lịch của ' + periodLabel + '. Lịch gắn với môn đã hoàn thành sẽ tự ẩn.</p></div>' +
+    '<button class="btn-sm" type="button" onclick="openScheduleModal()">+ Thêm buổi</button>';
+}
+
 function renderWeeklyGrid(container, daysData, startStr, endStr) {
-  const todayStr = new Date().toISOString().split('T')[0];
+  const todayStr = formatCalendarDate(new Date());
   const sortedDates = Object.keys(daysData).sort();
 
   let html = `<div class="calendar-grid-week">`;
@@ -169,7 +210,7 @@ function renderWeeklyGrid(container, daysData, startStr, endStr) {
 }
 
 function renderMonthlyGrid(container, daysData, pivotStartDate) {
-  const todayStr = new Date().toISOString().split('T')[0];
+  const todayStr = formatCalendarDate(new Date());
   const year = pivotStartDate.getFullYear();
   const month = pivotStartDate.getMonth();
 
@@ -278,90 +319,129 @@ async function openDayDetailModal(dateStr) {
 }
 
 // Modal Add Lich Hoc Controls (UC19, UC20, UC25)
-function toggleLichHocTypeFields() {
-  const loai = document.getElementById('selectLichHocLoai').value;
-  const grpThu = document.getElementById('grpLichHocThu');
-  const grpNgay = document.getElementById('grpLichHocNgayCuThe');
-  const grpTen = document.getElementById('grpLichHocTenSuKien');
+const SCHEDULE_WEEK_DAYS = ['T2', 'T3', 'T4', 'T5', 'T6', 'T7', 'CN'];
 
-  if (loai === 'Lich_hoc_co_dinh') {
-    grpThu.style.display = 'block';
-    grpNgay.style.display = 'none';
-    grpTen.style.display = 'none';
-  } else {
-    grpThu.style.display = 'none';
-    grpNgay.style.display = 'block';
-    grpTen.style.display = 'block';
-  }
+function getLocalScheduleDate() {
+  const now = new Date();
+  return new Date(now.getTime() - now.getTimezoneOffset() * 60000).toISOString().slice(0, 10);
+}
+
+function getTodayScheduleWeekday() {
+  const weekday = new Date().getDay();
+  return SCHEDULE_WEEK_DAYS[weekday === 0 ? 6 : weekday - 1];
+}
+
+function getSelectedScheduleDays() {
+  return Array.from(document.querySelectorAll('input[name="lichHocThu"]:checked'))
+    .map(input => input.value);
+}
+
+function openScheduleModal() {
+  document.getElementById('selectLichHocLoai').value = 'Lich_hoc_co_dinh';
+  document.getElementById('selectLichHocMonHoc').value = '';
+  document.getElementById('inputLichHocTenSuKien').value = '';
+  document.getElementById('inputLichHocNgayCuThe').value = getLocalScheduleDate();
+  document.getElementById('inputLichHocGioBatDau').value = '07:00';
+  document.getElementById('inputLichHocGioKetThuc').value = '09:00';
+  document.getElementById('selectLichHocHinhThuc').value = 'Offline';
+  document.getElementById('inputLichHocDiaDiem').value = '';
+  document.getElementById('inputLichHocGhiChu').value = '';
+  document.querySelectorAll('input[name="lichHocThu"]').forEach(input => {
+    input.checked = input.value === getTodayScheduleWeekday();
+  });
+  document.querySelector('.schedule-optional-fields')?.removeAttribute('open');
+  document.getElementById('boxLichHocConflictAlert').style.display = 'none';
+  const btnSubmit = document.getElementById('btnSubmitAddLichHoc');
+  btnSubmit.textContent = 'Lưu lịch tuần';
+  btnSubmit.setAttribute('onclick', 'submitAddLichHoc(false)');
+  toggleLichHocTypeFields();
+  toggleLichHocDiaDiemField();
+  openModal('modalAddLichHoc');
+}
+
+function toggleLichHocTypeFields() {
+  const isWeekly = document.getElementById('selectLichHocLoai').value === 'Lich_hoc_co_dinh';
+  document.getElementById('grpLichHocThu').style.display = isWeekly ? 'block' : 'none';
+  document.getElementById('grpLichHocNgayCuThe').style.display = isWeekly ? 'none' : 'block';
+  toggleScheduleTitleField();
+}
+
+function toggleScheduleTitleField() {
+  const isWeekly = document.getElementById('selectLichHocLoai').value === 'Lich_hoc_co_dinh';
+  const hasSubject = Boolean(document.getElementById('selectLichHocMonHoc').value);
+  const group = document.getElementById('grpLichHocTenSuKien');
+  const label = document.getElementById('lblLichHocTenSuKien');
+  group.style.display = isWeekly && hasSubject ? 'none' : 'block';
+  label.textContent = isWeekly ? 'Tên buổi học *' : 'Tên sự kiện *';
 }
 
 function toggleLichHocDiaDiemField() {
   const hinhThuc = document.getElementById('selectLichHocHinhThuc').value;
   const inputDiaDiem = document.getElementById('inputLichHocDiaDiem');
-  if (hinhThuc === 'Online') {
-    inputDiaDiem.placeholder = 'https://zoom.us/j/... hoặc Teams Link';
-  } else {
-    inputDiaDiem.placeholder = 'VD: Phòng A2-301, Tòa nhà B';
-  }
+  inputDiaDiem.placeholder = hinhThuc === 'Online'
+    ? 'https://zoom.us/j/... hoặc Teams Link'
+    : 'VD: Phòng A2-301, Tòa nhà B';
 }
 
 async function submitAddLichHoc(force = false) {
   const loai_su_kien = document.getElementById('selectLichHocLoai').value;
   const ma_mon = document.getElementById('selectLichHocMonHoc').value;
   const ten_su_kien = document.getElementById('inputLichHocTenSuKien').value.trim();
-  const thu_trong_tuan = document.getElementById('selectLichHocThu').value;
+  const selectedDays = getSelectedScheduleDays();
   const ngay_cu_the = document.getElementById('inputLichHocNgayCuThe').value;
   const gio_bat_dau = document.getElementById('inputLichHocGioBatDau').value;
   const gio_ket_thuc = document.getElementById('inputLichHocGioKetThuc').value;
   const hinh_thuc = document.getElementById('selectLichHocHinhThuc').value;
   const dia_diem = document.getElementById('inputLichHocDiaDiem').value.trim();
   const ghi_chu = document.getElementById('inputLichHocGhiChu').value.trim();
+  const isWeekly = loai_su_kien === 'Lich_hoc_co_dinh';
 
-  const payload = {
-    loai_su_kien,
-    ma_mon: ma_mon || null,
-    ten_su_kien,
-    thu_trong_tuan,
-    ngay_cu_the: ngay_cu_the || null,
-    gio_bat_dau,
-    gio_ket_thuc,
-    hinh_thuc,
-    dia_diem,
-    ghi_chu,
-    force
-  };
-
-  const boxAlert = document.getElementById('boxLichHocConflictAlert');
-  const txtMsg = document.getElementById('txtLichHocConflictMsg');
-  const btnSubmit = document.getElementById('btnSubmitAddLichHoc');
-
-  const res = await fetch('/api/lich_hoc', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(payload)
-  });
-
-  const json = await res.json();
-
-  if (res.status === 409) {
-    // UC25 Conflict Detected!
-    boxAlert.style.display = 'block';
-    txtMsg.textContent = `⚠ ${json.error}`;
-    btnSubmit.textContent = 'Vẫn lưu (Xác nhận trùng)';
-    btnSubmit.setAttribute('onclick', 'submitAddLichHoc(true)');
+  if (isWeekly && selectedDays.length === 0) {
+    alert('Hãy chọn ít nhất một ngày học trong tuần.');
+    return;
+  }
+  if (!ma_mon && !ten_su_kien) {
+    alert(isWeekly ? 'Hãy chọn môn học hoặc nhập tên buổi học.' : 'Hãy nhập tên sự kiện.');
+    return;
+  }
+  if (!gio_bat_dau || !gio_ket_thuc || gio_bat_dau >= gio_ket_thuc) {
+    alert('Giờ kết thúc phải sau giờ bắt đầu.');
     return;
   }
 
-  if (res.ok) {
-    alert('Thêm lịch học / sự kiện thành công!');
-    boxAlert.style.display = 'none';
-    btnSubmit.textContent = 'Lưu Lịch Học';
-    btnSubmit.setAttribute('onclick', 'submitAddLichHoc(false)');
-    closeModal('modalAddLichHoc');
-    renderCalendarView();
-  } else {
-    alert(`Lỗi: ${json.error || json.message}`);
+  const payload = {
+    loai_su_kien, ma_mon: ma_mon || null, ten_su_kien,
+    thu_trong_tuan: selectedDays[0] || null,
+    thu_trong_tuan_list: selectedDays,
+    ngay_cu_the: ngay_cu_the || null, gio_bat_dau, gio_ket_thuc,
+    hinh_thuc, dia_diem, ghi_chu, force
+  };
+  const boxAlert = document.getElementById('boxLichHocConflictAlert');
+  const txtMsg = document.getElementById('txtLichHocConflictMsg');
+  const btnSubmit = document.getElementById('btnSubmitAddLichHoc');
+  const endpoint = isWeekly ? '/api/lich_hoc/batch' : '/api/lich_hoc';
+
+  const res = await fetch(endpoint, {
+    method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload)
+  });
+  const json = await res.json();
+
+  if (res.status === 409) {
+    boxAlert.style.display = 'block';
+    txtMsg.textContent = json.message || json.error || 'Phát hiện xung đột thời gian.';
+    btnSubmit.textContent = 'Vẫn lưu (xác nhận trùng)';
+    btnSubmit.setAttribute('onclick', 'submitAddLichHoc(true)');
+    return;
   }
+  if (!res.ok) {
+    alert('Lỗi: ' + (json.error || json.message || 'Không thể lưu lịch học'));
+    return;
+  }
+
+  alert(json.message || 'Đã lưu lịch học thành công!');
+  boxAlert.style.display = 'none';
+  closeModal('modalAddLichHoc');
+  renderCalendarView();
 }
 
 async function deleteLichHoc(maLich) {

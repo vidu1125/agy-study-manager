@@ -26,6 +26,20 @@ def create_lich_hoc():
         return jsonify({"error": str(e)}), 400
 
 
+@bp.route("/api/lich_hoc/batch", methods=["POST"])
+def create_lich_hoc_batch():
+    try:
+        result = LichHocService.create_weekly_batch(request.json or {})
+        if result.get("conflict"):
+            return jsonify(result), 409
+        return jsonify({
+            "message": f"Đã tạo {len(result['lich_hocs'])} buổi học hàng tuần",
+            "lich_hocs": result["lich_hocs"],
+        }), 201
+    except ValueError as e:
+        return jsonify({"error": str(e)}), 400
+
+
 @bp.route("/api/lich_hoc/<ma_lich>", methods=["PUT"])
 def update_lich_hoc(ma_lich):
     try:

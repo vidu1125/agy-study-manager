@@ -167,6 +167,7 @@ async function submitEditMonHoc() {
   closeModal('modalEditMonHoc');
   await fetchSubjects();
   renderMonHocTable();
+  if (document.getElementById('tab-lichhoc')?.style.display !== 'none') renderCalendarView();
 }
 
 async function submitAddMonHoc() {

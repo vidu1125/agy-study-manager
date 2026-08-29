@@ -125,7 +125,7 @@
                 <span class="material-symbols-outlined">schedule</span>
                 <span>Thêm Deadline / Nhiệm vụ</span>
               </button>
-              <button onclick="openModal('modalAddLichHoc')">
+              <button onclick="openScheduleModal()">
                 <span class="material-symbols-outlined">calendar_add_on</span>
                 <span>Thêm Lịch học / Sự kiện</span>
               </button>
@@ -647,9 +647,9 @@
                 <button class="btn-sm" onclick="navigateCalendarPeriod(-1)">&lt; Trước</button>
                 <button class="btn-sm" onclick="navigateCalendarPeriod(0)">Hôm nay</button>
                 <button class="btn-sm" onclick="navigateCalendarPeriod(1)">Sau &gt;</button>
-                <button class="btn-primary" onclick="openModal('modalAddLichHoc')" style="margin-left:8px;">
+                <button class="btn-primary" onclick="openScheduleModal()" style="margin-left:8px;">
                   <span class="material-symbols-outlined" style="font-size:16px;">add</span>
-                  <span>Thêm Lịch / Sự kiện</span>
+                  <span>Thêm buổi học</span>
                 </button>
               </div>
             </div>
@@ -676,6 +676,11 @@
           </div>
 
           <!-- Main Calendar Render Grid -->
+          <section class="schedule-week-summary" id="scheduleWeekSummary" aria-live="polite">
+            <span class="material-symbols-outlined">event_available</span>
+            <p>Đang tổng hợp nhịp học trong tuần...</p>
+          </section>
+
           <div class="card-box" style="padding:16px;">
             <div id="calendarViewContainer">
               <p style="text-align:center; padding:20px; color:var(--text-muted);">Đang tải lịch học &amp; deadline...</p>
@@ -1201,43 +1206,43 @@
   <div class="modal-overlay" id="modalAddLichHoc">
     <div class="modal-card">
       <div class="modal-header">
-        <h3>THÊM LỊCH HỌC / SỰ KIỆN CÁ NHÂN</h3>
+        <h3>THÊM BUỔI HỌC / SỰ KIỆN</h3>
         <button class="modal-close" onclick="closeModal('modalAddLichHoc')">&times;</button>
       </div>
       <div class="modal-body">
         <div class="form-row">
           <div class="form-group">
-            <label>Loại sự kiện *</label>
+            <label>Kiểu lịch</label>
             <select id="selectLichHocLoai" class="form-control" onchange="toggleLichHocTypeFields()">
-              <option value="Lich_hoc_co_dinh" selected>Lịch học cố định (Lặp lại hàng tuần)</option>
-              <option value="Su_kien_mot_lan">Sự kiện 1 lần (Bảo vệ đồ án, thi...)</option>
+              <option value="Lich_hoc_co_dinh" selected>Buổi học lặp lại hàng tuần</option>
+              <option value="Su_kien_mot_lan">Sự kiện một lần</option>
             </select>
           </div>
           <div class="form-group">
-            <label>Môn học liên quan</label>
-            <select id="selectLichHocMonHoc" class="form-control">
-              <option value="">-- Sự kiện tự do (Không thuộc môn) --</option>
+            <label>Môn học (tùy chọn)</label>
+            <select id="selectLichHocMonHoc" class="form-control" onchange="toggleScheduleTitleField()">
+              <option value="">-- Buổi học tự do --</option>
             </select>
           </div>
         </div>
 
-        <div class="form-group" id="grpLichHocTenSuKien" style="display:none;">
-          <label>Tên sự kiện *</label>
-          <input type="text" id="inputLichHocTenSuKien" class="form-control" placeholder="VD: Bảo vệ đồ án giữa kỳ, Họp nhóm...">
+        <div class="form-group" id="grpLichHocTenSuKien">
+          <label id="lblLichHocTenSuKien">Tên buổi học *</label>
+          <input type="text" id="inputLichHocTenSuKien" class="form-control" placeholder="VD: Ôn IELTS, Học tại thư viện...">
         </div>
 
-        <!-- Field for Repeating (UC19) -->
         <div class="form-group" id="grpLichHocThu">
-          <label>Thứ trong tuần *</label>
-          <select id="selectLichHocThu" class="form-control">
-            <option value="T2">Thứ 2</option>
-            <option value="T3">Thứ 3</option>
-            <option value="T4">Thứ 4</option>
-            <option value="T5">Thứ 5</option>
-            <option value="T6">Thứ 6</option>
-            <option value="T7">Thứ 7</option>
-            <option value="CN">Chủ Nhật</option>
-          </select>
+          <label>Lặp lại vào *</label>
+          <div class="week-day-picker" id="lichHocWeekDayPicker" role="group" aria-label="Ngày học lặp lại">
+            <label><input type="checkbox" name="lichHocThu" value="T2">T2</label>
+            <label><input type="checkbox" name="lichHocThu" value="T3">T3</label>
+            <label><input type="checkbox" name="lichHocThu" value="T4">T4</label>
+            <label><input type="checkbox" name="lichHocThu" value="T5">T5</label>
+            <label><input type="checkbox" name="lichHocThu" value="T6">T6</label>
+            <label><input type="checkbox" name="lichHocThu" value="T7">T7</label>
+            <label><input type="checkbox" name="lichHocThu" value="CN">CN</label>
+          </div>
+          <small class="schedule-field-help">Chọn nhiều ngày nếu cùng giờ học.</small>
         </div>
 
         <!-- Field for Single Event (UC20) -->
@@ -1257,7 +1262,9 @@
           </div>
         </div>
 
-        <div class="form-row">
+        <details class="schedule-optional-fields">
+          <summary>Thêm địa điểm, hình thức hoặc ghi chú (tùy chọn)</summary>
+          <div class="form-row">
           <div class="form-group">
             <label>Hình thức học</label>
             <select id="selectLichHocHinhThuc" class="form-control" onchange="toggleLichHocDiaDiemField()">
@@ -1266,7 +1273,7 @@
             </select>
           </div>
           <div class="form-group">
-            <label>Địa điểm / Link lớp *</label>
+            <label>Địa điểm / Link lớp</label>
             <input type="text" id="inputLichHocDiaDiem" class="form-control" placeholder="VD: Phòng A2-301 hoặc link Zoom/Teams">
           </div>
         </div>
@@ -1275,6 +1282,8 @@
           <label>Ghi chú thêm</label>
           <textarea id="inputLichHocGhiChu" class="form-control" rows="2" placeholder="Mang theo laptop, chuẩn bị slide..."></textarea>
         </div>
+
+        </details>
 
         <!-- UC25 Conflict Alert Panel -->
         <div id="boxLichHocConflictAlert" style="display:none; background:rgba(251,146,60,0.1); border:1px solid rgba(251,146,60,0.4); padding:12px; border-radius:10px; margin-top:10px;">

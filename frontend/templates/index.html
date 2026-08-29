@@ -3,6 +3,8 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="theme-color" content="#02040b">
+  <meta name="apple-mobile-web-app-capable" content="yes">
   <title>EduPulse — Learning Hub & Study Manager</title>
   <meta name="description" content="Hệ thống quản lý môn học đại học, tự học, tiến độ deadline và thời khóa biểu thông minh.">
 
@@ -109,7 +111,7 @@
 
         <div class="header-actions">
           <div class="dropdown-quick-add">
-            <button class="btn-primary" id="btnToggleQuickAdd">
+            <button class="btn-primary" id="btnToggleQuickAdd" aria-label="Mở menu tạo mới">
               <span class="material-symbols-outlined" style="font-size:16px;">add</span>
               <span>+ Thêm mới</span>
               <span class="material-symbols-outlined" style="font-size:16px;">arrow_drop_down</span>
@@ -674,8 +676,47 @@
           <span class="material-symbols-outlined">timer</span>
           <span>Nhật ký</span>
         </li>
+        <li class="mobile-nav-item mobile-more-trigger" id="btnMobileMore" role="button" tabindex="0" aria-expanded="false" aria-controls="mobileMoreSheet">
+          <span class="material-symbols-outlined">grid_view</span>
+          <span>Khác</span>
+        </li>
       </ul>
     </nav>
+
+    <div class="mobile-more-backdrop" id="mobileMoreBackdrop" aria-hidden="true" onclick="toggleMobileMoreMenu(false)"></div>
+    <section class="mobile-more-sheet" id="mobileMoreSheet" aria-label="Các khu vực khác">
+      <div class="mobile-more-sheet-header">
+        <div>
+          <p class="mobile-sheet-kicker">ĐIỀU HƯỚNG</p>
+          <h2>Thêm khu vực</h2>
+        </div>
+        <button class="btn-icon" type="button" aria-label="Đóng menu" onclick="toggleMobileMoreMenu(false)">
+          <span class="material-symbols-outlined">close</span>
+        </button>
+      </div>
+      <div class="mobile-more-grid">
+        <button type="button" onclick="mobileSwitchTab('tab-monhoc')">
+          <span class="material-symbols-outlined">school</span>
+          <span>Môn học</span>
+        </button>
+        <button type="button" onclick="mobileSwitchTab('tab-vocab-analytics')">
+          <span class="material-symbols-outlined">insights</span>
+          <span>Phân tích từ vựng</span>
+        </button>
+        <button type="button" onclick="mobileSwitchTab('tab-muctieu')">
+          <span class="material-symbols-outlined">flag</span>
+          <span>Mục tiêu</span>
+        </button>
+        <button type="button" onclick="mobileSwitchTab('tab-baocao')">
+          <span class="material-symbols-outlined">summarize</span>
+          <span>Báo cáo</span>
+        </button>
+        <button type="button" onclick="mobileSwitchTab('tab-lichhoc')">
+          <span class="material-symbols-outlined">calendar_month</span>
+          <span>Lịch học</span>
+        </button>
+      </div>
+    </section>
   </div>
 
 

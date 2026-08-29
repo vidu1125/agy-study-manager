@@ -52,12 +52,47 @@ function setupNavigation() {
   navItems.forEach(item => {
     item.addEventListener('click', () => {
       const targetTab = item.dataset.tab;
+      if (!targetTab) return;
       switchTab(targetTab);
     });
   });
+
+  const moreTrigger = document.getElementById('btnMobileMore');
+  if (moreTrigger) {
+    moreTrigger.addEventListener('click', () => toggleMobileMoreMenu());
+    moreTrigger.addEventListener('keydown', (event) => {
+      if (event.key === 'Enter' || event.key === ' ') {
+        event.preventDefault();
+        toggleMobileMoreMenu();
+      }
+    });
+  }
+}
+
+function toggleMobileMoreMenu(forceOpen) {
+  const sheet = document.getElementById('mobileMoreSheet');
+  const backdrop = document.getElementById('mobileMoreBackdrop');
+  const trigger = document.getElementById('btnMobileMore');
+  if (!sheet || !backdrop) return;
+
+  const isOpen = typeof forceOpen === 'boolean'
+    ? forceOpen
+    : !sheet.classList.contains('active');
+
+  sheet.classList.toggle('active', isOpen);
+  backdrop.classList.toggle('active', isOpen);
+  document.body.classList.toggle('mobile-menu-open', isOpen);
+  if (trigger) trigger.setAttribute('aria-expanded', String(isOpen));
+}
+
+function mobileSwitchTab(tabId) {
+  toggleMobileMoreMenu(false);
+  switchTab(tabId);
 }
 
 function switchTab(tabId) {
+  toggleMobileMoreMenu(false);
+
   // Update active state on navigation items
   document.querySelectorAll('.nav-item, .mobile-nav-item').forEach(el => {
     if (el.dataset.tab === tabId) el.classList.add('active');
@@ -78,6 +113,7 @@ function switchTab(tabId) {
     'tab-deadline': 'Quản lý Deadline & Nhiệm vụ',
     'tab-tailieu': 'Kho Tài liệu Học tập',
     'tab-vocab': 'Học từ vựng Spaced Repetition',
+    'tab-vocab-analytics': 'Phân tích tiến độ từ vựng',
     'tab-nhatky': 'Nhật ký Thời gian Thực tế',
     'tab-muctieu': 'Mục tiêu Cá nhân',
     'tab-baocao': 'Báo cáo Tuần & Lịch sử Gia hạn',
@@ -94,6 +130,7 @@ function switchTab(tabId) {
   else if (tabId === 'tab-deadline') renderAllDeadlinesTable();
   else if (tabId === 'tab-tailieu') renderTaiLieuTable();
   else if (tabId === 'tab-vocab') renderVocabWorkspace();
+  else if (tabId === 'tab-vocab-analytics') renderVocabAnalytics();
   else if (tabId === 'tab-nhatky') renderNhatKyTable();
   else if (tabId === 'tab-muctieu') renderMucTieuTable();
   else if (tabId === 'tab-baocao') renderReportAndExtensions();

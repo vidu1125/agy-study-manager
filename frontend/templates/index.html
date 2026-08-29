@@ -203,6 +203,10 @@
             </div>
           </div>
 
+          <section class="study-progress-card" id="dashboardStudySummary" aria-live="polite">
+            <p class="study-summary-loading">Đang tổng hợp chuỗi học và số giờ học...</p>
+          </section>
+
           <!-- Upcoming Deadlines Table -->
           <div class="card-box">
             <div class="section-title">
@@ -505,6 +509,9 @@
                 <span>Ghi nhận Giờ học mới</span>
               </button>
             </div>
+            <section class="time-log-summary" id="timeLogStudySummary" aria-live="polite">
+              <p class="study-summary-loading">Đang tổng hợp thời lượng học...</p>
+            </section>
             <div class="table-responsive">
               <table class="data-table">
                 <thead>
@@ -1059,7 +1066,7 @@
           </div>
           <div class="form-group">
             <label>Số giờ thực tế đã học (giờ) *</label>
-            <input type="number" id="inputLogGio" class="form-control" step="0.5" min="0.1" placeholder="VD: 1.5">
+            <input type="number" id="inputLogGio" class="form-control" step="0.5" min="0.1" max="24" placeholder="VD: 1.5">
           </div>
         </div>
         <div class="form-group">

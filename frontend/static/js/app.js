@@ -10,7 +10,8 @@ let globalData = {
   timeLogs: [],
   goals: [],
   extensionLogs: [],
-  vocabDecks: []
+  vocabDecks: [],
+  studySummary: null
 };
 
 // ==========================================
@@ -24,8 +25,14 @@ document.addEventListener('DOMContentLoaded', () => {
   setupAutoDraftSave();
 });
 
+function getLocalDateInputValue() {
+  const now = new Date();
+  const localTime = new Date(now.getTime() - now.getTimezoneOffset() * 60000);
+  return localTime.toISOString().slice(0, 10);
+}
+
 function setDefaultDates() {
-  const todayStr = new Date().toISOString().split('T')[0];
+  const todayStr = getLocalDateInputValue();
   const inputNgayGiao = document.getElementById('inputDeadlineNgayGiao');
   const inputLogNgay = document.getElementById('inputLogNgay');
   if (inputNgayGiao) inputNgayGiao.value = todayStr;

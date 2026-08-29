@@ -4,6 +4,7 @@ services/nhat_ky_service.py — Business logic cho NhatKyThoiGian (UC11, UC12).
 Single Responsibility: ghi nhật ký học tập + tính streak + kiểm tra thiếu log.
 """
 import datetime
+from collections import defaultdict
 
 from models import db, NhatKyThoiGian, Deadline
 
@@ -34,15 +35,19 @@ class NhatKyService:
                 raise ValueError()
         except (ValueError, TypeError):
             raise ValueError("Số giờ đã học phải là số dương hợp lệ")
+        if gio_thuc_te > 24:
+            raise ValueError("Số giờ học trong một ngày không thể vượt quá 24 giờ")
 
         ngay_log = (
             datetime.datetime.strptime(data["ngay"], "%Y-%m-%d").date()
             if data.get("ngay")
             else datetime.date.today()
         )
+        if ngay_log > datetime.date.today():
+            raise ValueError("Không thể ghi nhận giờ học cho ngày trong tương lai")
 
         log_entry = NhatKyThoiGian(
-            ma_log=f"LOG-{int(datetime.datetime.now().timestamp())}",
+            ma_log=f"LOG-{datetime.datetime.now().strftime('%Y%m%d%H%M%S%f')}",
             ma_bai_tap=ma_bai_tap,
             ngay=ngay_log,
             gio_thuc_te=gio_thuc_te,
@@ -55,30 +60,68 @@ class NhatKyService:
         return log_entry.to_dict(), NhatKyService.calculate_streak()
 
     @staticmethod
-    def calculate_streak() -> int:
-        """UC12 — Tính số ngày học liên tiếp (streak) tính tới hôm nay."""
+    def get_study_summary(today: datetime.date | None = None) -> dict:
+        """Tổng hợp chuỗi học và thời lượng từ các nhật ký đã ghi nhận."""
+        today = today or datetime.date.today()
         logs = NhatKyThoiGian.query.order_by(NhatKyThoiGian.ngay.desc()).all()
-        if not logs:
+        hours_by_date: dict[datetime.date, float] = defaultdict(float)
+        for log in logs:
+            if log.ngay and log.ngay <= today:
+                hours_by_date[log.ngay] += float(log.gio_thuc_te or 0)
+
+        study_dates = set(hours_by_date)
+        week_start = today - datetime.timedelta(days=today.weekday())
+        month_start = today.replace(day=1)
+        week_activity = []
+        for offset in range(6, -1, -1):
+            day = today - datetime.timedelta(days=offset)
+            week_activity.append({
+                "date": day.isoformat(),
+                "hours": round(hours_by_date.get(day, 0), 2),
+                "is_today": day == today,
+            })
+
+        return {
+            "today_hours": round(hours_by_date.get(today, 0), 2),
+            "week_hours": round(sum(hours for day, hours in hours_by_date.items() if day >= week_start), 2),
+            "month_hours": round(sum(hours for day, hours in hours_by_date.items() if day >= month_start), 2),
+            "total_hours": round(sum(hours_by_date.values()), 2),
+            "active_days_week": sum(1 for day in study_dates if day >= week_start),
+            "current_streak": NhatKyService._current_streak(study_dates, today),
+            "longest_streak": NhatKyService._longest_streak(study_dates),
+            "studied_today": today in study_dates,
+            "last_study_date": max(study_dates).isoformat() if study_dates else None,
+            "week_activity": week_activity,
+        }
+
+    @staticmethod
+    def _current_streak(study_dates: set[datetime.date], today: datetime.date) -> int:
+        if not study_dates:
             return 0
-
-        unique_dates = sorted(set(log.ngay for log in logs), reverse=True)
-        today = datetime.date.today()
+        check_date = today if today in study_dates else today - datetime.timedelta(days=1)
+        if check_date not in study_dates:
+            return 0
         streak = 0
-        check_date = today
-
-        # Nếu ngày gần nhất không phải hôm nay và đã qua 1 ngày → streak = 0
-        if unique_dates and unique_dates[0] < today:
-            if (today - unique_dates[0]).days > 1:
-                return 0
-            check_date = unique_dates[0]
-
-        for d in unique_dates:
-            if d == check_date:
-                streak += 1
-                check_date -= datetime.timedelta(days=1)
-            elif d < check_date:
-                break  # chuỗi bị đứt
+        while check_date in study_dates:
+            streak += 1
+            check_date -= datetime.timedelta(days=1)
         return streak
+
+    @staticmethod
+    def _longest_streak(study_dates: set[datetime.date]) -> int:
+        longest = 0
+        running = 0
+        previous = None
+        for day in sorted(study_dates):
+            running = running + 1 if previous and (day - previous).days == 1 else 1
+            longest = max(longest, running)
+            previous = day
+        return longest
+
+    @staticmethod
+    def calculate_streak() -> int:
+        """UC12 — Tính số ngày học liên tiếp, tính cả ngày hôm qua nếu hôm nay chưa học."""
+        return NhatKyService.get_study_summary()["current_streak"]
 
     @staticmethod
     def check_missing_time_logs() -> list[dict]:

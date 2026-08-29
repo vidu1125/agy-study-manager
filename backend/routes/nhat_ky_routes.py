@@ -12,6 +12,11 @@ def get_nhat_ky():
     return jsonify(NhatKyService.get_all())
 
 
+@bp.route("/api/nhat_ky/summary", methods=["GET"])
+def get_nhat_ky_summary():
+    return jsonify(NhatKyService.get_study_summary())
+
+
 @bp.route("/api/nhat_ky", methods=["POST"])
 def create_nhat_ky():
     try:

@@ -25,11 +25,7 @@ def get_dashboard_data() -> dict:
         key=lambda d: (priority_order.get(d.do_uu_tien, 2), d.han_nop),
     )
 
-    week_start = today - datetime.timedelta(days=7)
-    hours_this_week = round(
-        sum(l.gio_thuc_te for l in NhatKyThoiGian.query.filter(NhatKyThoiGian.ngay >= week_start).all()),
-        1,
-    )
+    study_summary = NhatKyService.get_study_summary(today)
 
     subject_overdue: dict = {}
     for d in Deadline.query.filter(Deadline.trang_thai == "Tre_han").all():
@@ -43,9 +39,10 @@ def get_dashboard_data() -> dict:
         "ntfy_topic": get_ntfy_topic(),
         "metrics": {
             "upcoming_deadlines_count": len(deadlines_7_days),
-            "streak_days": NhatKyService.calculate_streak(),
-            "weekly_hours": hours_this_week,
+            "streak_days": study_summary["current_streak"],
+            "weekly_hours": study_summary["week_hours"],
         },
+        "study_summary": study_summary,
         "upcoming_deadlines": [d.to_dict() for d in deadlines_7_days],
         "overload_alerts": DeadlineService.check_overload_warning(),
         "deadline_reminders": DeadlineService.check_deadline_reminders(),
@@ -57,13 +54,13 @@ def get_dashboard_data() -> dict:
 
 
 def generate_weekly_report() -> dict:
-    """UC16 — Tạo báo cáo học tập tổng kết 7 ngày qua."""
+    """UC16 — Tạo báo cáo học tập tổng kết từ đầu tuần đến hiện tại."""
     today = datetime.date.today()
-    week_start = today - datetime.timedelta(days=7)
+    week_start = today - datetime.timedelta(days=today.weekday())
 
     completed_deadlines = Deadline.query.filter(Deadline.trang_thai == "Hoan_thanh").all()
     logs_this_week = NhatKyThoiGian.query.filter(NhatKyThoiGian.ngay >= week_start).all()
-    total_hours = sum(l.gio_thuc_te for l in logs_this_week)
+    total_hours = sum(l.gio_thuc_te or 0 for l in logs_this_week)
 
     subject_overdue: dict = {}
     for d in Deadline.query.filter(Deadline.trang_thai == "Tre_han").all():

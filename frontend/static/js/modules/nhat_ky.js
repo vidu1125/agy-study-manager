@@ -4,13 +4,33 @@
    ========================================================================== */
 
 async function fetchTimeLogs() {
-  const res = await fetch('/api/nhat_ky');
-  globalData.timeLogs = await res.json();
+  const [logsRes, summaryRes] = await Promise.all([
+    fetch('/api/nhat_ky'),
+    fetch('/api/nhat_ky/summary'),
+  ]);
+  if (!logsRes.ok) throw new Error('Không thể tải nhật ký học tập');
+  globalData.timeLogs = await logsRes.json();
+  globalData.studySummary = summaryRes.ok ? await summaryRes.json() : null;
+}
+
+function renderTimeLogStudySummary() {
+  const container = document.getElementById('timeLogStudySummary');
+  const summary = globalData.studySummary;
+  if (!container || !summary) return;
+  const streakLabel = summary.current_streak
+    ? 'Đang duy trì chuỗi ' + summary.current_streak + ' ngày'
+    : 'Bắt đầu ghi nhận phiên học đầu tiên';
+  container.innerHTML =
+    '<div class="time-log-summary-item"><span class="material-symbols-outlined">today</span><div><small>Hôm nay</small><strong>' + formatStudyHours(summary.today_hours) + '</strong></div></div>' +
+    '<div class="time-log-summary-item"><span class="material-symbols-outlined">date_range</span><div><small>Tuần này</small><strong>' + formatStudyHours(summary.week_hours) + '</strong></div></div>' +
+    '<div class="time-log-summary-item"><span class="material-symbols-outlined">local_fire_department</span><div><small>Chuỗi học</small><strong>' + (summary.current_streak || 0) + ' ngày</strong></div></div>' +
+    '<p class="time-log-summary-note">' + streakLabel + ' · Kỷ lục ' + (summary.longest_streak || 0) + ' ngày</p>';
 }
 
 function renderNhatKyTable() {
   const tbody = document.getElementById('tblNhatKy');
   if (!tbody) return;
+  renderTimeLogStudySummary();
 
   if (globalData.timeLogs.length === 0) {
     tbody.innerHTML = '<tr><td colspan="7" style="text-align:center; color:var(--text-muted);">Chưa có lịch sử học tập. Hãy bấm "+ Ghi nhận Giờ học mới".</td></tr>';

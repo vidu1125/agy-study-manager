@@ -15,6 +15,62 @@ async function renderDashboard() {
   await fetchDashboardData();
 }
 
+function formatStudyHours(value) {
+  const totalMinutes = Math.round(Math.max(0, Number(value) || 0) * 60);
+  if (totalMinutes === 0) return '0 phút';
+  if (totalMinutes < 60) return totalMinutes + ' phút';
+  const hours = Math.floor(totalMinutes / 60);
+  const minutes = totalMinutes % 60;
+  return minutes ? hours + ' giờ ' + minutes + ' phút' : hours + ' giờ';
+}
+
+function getStudyDayLabel(dateValue) {
+  const date = new Date(dateValue + 'T12:00:00');
+  return new Intl.DateTimeFormat('vi-VN', { weekday: 'short' })
+    .format(date)
+    .replace('.', '')
+    .toUpperCase();
+}
+
+function renderDashboardStudySummary(summary) {
+  const container = document.getElementById('dashboardStudySummary');
+  if (!container || !summary) return;
+
+  const activity = Array.isArray(summary.week_activity) ? summary.week_activity : [];
+  const maxHours = Math.max(...activity.map(day => Number(day.hours) || 0), 1);
+  const activityHtml = activity.map(day => {
+    const hours = Number(day.hours) || 0;
+    const height = hours ? Math.max(10, Math.round(hours / maxHours * 100)) : 4;
+    const todayClass = day.is_today ? ' today' : '';
+    const studiedClass = hours ? ' studied' : '';
+    return '<div class="study-activity-day' + todayClass + studiedClass + '" title="' + day.date + ': ' + formatStudyHours(hours) + '">' +
+      '<span>' + formatStudyHours(hours) + '</span>' +
+      '<div class="study-activity-bar"><i style="height:' + height + '%"></i></div>' +
+      '<b>' + getStudyDayLabel(day.date) + '</b>' +
+    '</div>';
+  }).join('');
+
+  const todayMessage = summary.studied_today
+    ? 'Bạn đã duy trì nhịp học hôm nay. Tiếp tục nhé!'
+    : 'Hôm nay chưa có giờ học nào được ghi nhận.';
+
+  container.innerHTML =
+    '<div class="study-progress-header">' +
+      '<div class="study-streak-block">' +
+        '<span class="material-symbols-outlined">local_fire_department</span>' +
+        '<div><p>CHUỖI HỌC HIỆN TẠI</p><strong>' + (summary.current_streak || 0) + ' ngày</strong><small>Kỷ lục: ' + (summary.longest_streak || 0) + ' ngày</small></div>' +
+      '</div>' +
+      '<div class="study-progress-action"><span>' + todayMessage + '</span><button class="btn-sm" type="button" onclick="openModal(\'modalLogTime\')">+ Ghi giờ học</button></div>' +
+    '</div>' +
+    '<div class="study-total-grid">' +
+      '<div><span>Hôm nay</span><b>' + formatStudyHours(summary.today_hours) + '</b></div>' +
+      '<div><span>Tuần này</span><b>' + formatStudyHours(summary.week_hours) + '</b><small>' + (summary.active_days_week || 0) + ' ngày có học</small></div>' +
+      '<div><span>Tháng này</span><b>' + formatStudyHours(summary.month_hours) + '</b></div>' +
+      '<div><span>Tổng tích lũy</span><b>' + formatStudyHours(summary.total_hours) + '</b></div>' +
+    '</div>' +
+    '<div class="study-activity-section"><div><span>NHỊP HỌC 7 NGÀY GẦN NHẤT</span><small>Mỗi cột là số giờ đã ghi nhận</small></div><div class="study-activity-chart">' + activityHtml + '</div></div>';
+}
+
 function renderDashboardWithPayload(payload) {
   const metrics = payload.metrics;
   const elDeadlines = document.getElementById('valMetricDeadlines');
@@ -23,7 +79,8 @@ function renderDashboardWithPayload(payload) {
 
   if (elDeadlines) elDeadlines.textContent = metrics.upcoming_deadlines_count;
   if (elStreak) elStreak.textContent = `${metrics.streak_days} ngày`;
-  if (elWeekly) elWeekly.textContent = `${metrics.weekly_hours} giờ`;
+  if (elWeekly) elWeekly.textContent = formatStudyHours(metrics.weekly_hours);
+  renderDashboardStudySummary(payload.study_summary);
 
   // Banners area (Warnings, missing logs, overload warnings)
   const warnArea = document.getElementById('dashboardWarnings');

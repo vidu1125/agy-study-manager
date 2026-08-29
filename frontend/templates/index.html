@@ -252,6 +252,19 @@
                 <span>Thêm Môn học mới</span>
               </button>
             </div>
+            <div class="table-search-row">
+              <span class="material-symbols-outlined" aria-hidden="true">search</span>
+              <input
+                id="subjectSearch"
+                type="search"
+                autocomplete="off"
+                placeholder="Tìm theo mã, tên môn, giảng viên hoặc nguồn học..."
+                aria-label="Tìm kiếm môn học"
+                oninput="filterMonHocTable()"
+              >
+              <button class="table-search-clear" type="button" aria-label="Xóa tìm kiếm môn học" onclick="clearMonHocSearch()">×</button>
+              <span class="table-search-count" id="subjectSearchCount" aria-live="polite"></span>
+            </div>
             <div class="table-responsive">
               <table class="data-table">
                 <thead>
@@ -319,6 +332,19 @@
                 <span class="material-symbols-outlined" style="font-size:16px;">add</span>
                 <span>Thêm Tài liệu mới</span>
               </button>
+            </div>
+            <div class="table-search-row">
+              <span class="material-symbols-outlined" aria-hidden="true">search</span>
+              <input
+                id="materialSearch"
+                type="search"
+                autocomplete="off"
+                placeholder="Tìm tên tài liệu, môn học, loại hoặc link..."
+                aria-label="Tìm kiếm tài liệu học tập"
+                oninput="filterTaiLieuTable()"
+              >
+              <button class="table-search-clear" type="button" aria-label="Xóa tìm kiếm tài liệu" onclick="clearTaiLieuSearch()">×</button>
+              <span class="table-search-count" id="materialSearchCount" aria-live="polite"></span>
             </div>
             <div class="table-responsive">
               <table class="data-table">

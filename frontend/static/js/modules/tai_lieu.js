@@ -8,16 +8,62 @@ async function fetchMaterials() {
   globalData.materials = await res.json();
 }
 
+function normaliseMaterialSearch(value) {
+  return String(value || '')
+    .toLocaleLowerCase('vi')
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .replace(/đ/g, 'd');
+}
+
+function getTaiLieuSearchMatches() {
+  const query = normaliseMaterialSearch(document.getElementById('materialSearch')?.value);
+  const materials = Array.isArray(globalData.materials) ? globalData.materials : [];
+  if (!query) return { query, materials, matches: materials };
+
+  const matches = materials.filter(material => normaliseMaterialSearch([
+    material.ma_tai_lieu,
+    material.ten_mon,
+    material.ten_tai_lieu,
+    material.loai_tai_lieu,
+    material.link,
+  ].join(' ')).includes(query));
+  return { query, materials, matches };
+}
+
+function updateTaiLieuSearchCount(query, matches, total) {
+  const count = document.getElementById('materialSearchCount');
+  if (!count) return;
+  count.textContent = query ? matches.length + '/' + total + ' kết quả' : total + ' tài liệu';
+}
+
+function filterTaiLieuTable() {
+  renderTaiLieuTable();
+}
+
+function clearTaiLieuSearch() {
+  const input = document.getElementById('materialSearch');
+  if (!input) return;
+  input.value = '';
+  renderTaiLieuTable();
+  input.focus();
+}
+
 function renderTaiLieuTable() {
   const tbody = document.getElementById('tblTaiLieu');
   if (!tbody) return;
+  const { query, materials, matches } = getTaiLieuSearchMatches();
+  updateTaiLieuSearchCount(query, matches, materials.length);
 
-  if (globalData.materials.length === 0) {
-    tbody.innerHTML = '<tr><td colspan="8" style="text-align:center; color:var(--text-muted);">Chưa có tài liệu học tập nào. Hãy bấm "+ Thêm Tài liệu mới".</td></tr>';
+  if (matches.length === 0) {
+    const message = query
+      ? 'Không tìm thấy tài liệu phù hợp. Hãy thử tên tài liệu, tên môn hoặc loại tài liệu.'
+      : 'Chưa có tài liệu học tập nào. Hãy bấm "+ Thêm Tài liệu mới".';
+    tbody.innerHTML = '<tr><td colspan="8" style="text-align:center; color:var(--text-muted);">' + message + '</td></tr>';
     return;
   }
 
-  tbody.innerHTML = globalData.materials.map(m => `
+  tbody.innerHTML = matches.map(m => `
     <tr>
       <td><code>${m.ma_tai_lieu}</code></td>
       <td><strong>${escapeMaterialHtml(m.ten_mon || 'Tài liệu chung')}</strong></td>

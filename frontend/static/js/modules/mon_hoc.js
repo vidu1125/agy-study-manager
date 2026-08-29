@@ -34,16 +34,64 @@ function setMonHocType(type) {
   }
 }
 
+function normaliseSubjectSearch(value) {
+  return String(value || '')
+    .toLocaleLowerCase('vi')
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .replace(/đ/g, 'd');
+}
+
+function getMonHocSearchMatches() {
+  const query = normaliseSubjectSearch(document.getElementById('subjectSearch')?.value);
+  const subjects = Array.isArray(globalData.subjects) ? globalData.subjects : [];
+  if (!query) return { query, subjects, matches: subjects };
+
+  const matches = subjects.filter(subject => normaliseSubjectSearch([
+    subject.ma_mon,
+    subject.ten_mon,
+    subject.loai_mon === 'Truong' ? 'trường truong' : 'tự học tu hoc',
+    subject.giang_vien,
+    subject.nguon_hoc,
+    subject.muc_do_uu_tien,
+    subject.trang_thai,
+  ].join(' ')).includes(query));
+  return { query, subjects, matches };
+}
+
+function updateMonHocSearchCount(query, matches, total) {
+  const count = document.getElementById('subjectSearchCount');
+  if (!count) return;
+  count.textContent = query ? matches.length + '/' + total + ' kết quả' : total + ' môn';
+}
+
+function filterMonHocTable() {
+  renderMonHocTable();
+}
+
+function clearMonHocSearch() {
+  const input = document.getElementById('subjectSearch');
+  if (!input) return;
+  input.value = '';
+  renderMonHocTable();
+  input.focus();
+}
+
 function renderMonHocTable() {
   const tbody = document.getElementById('tblMonHoc');
   if (!tbody) return;
+  const { query, subjects, matches } = getMonHocSearchMatches();
+  updateMonHocSearchCount(query, matches, subjects.length);
 
-  if (globalData.subjects.length === 0) {
-    tbody.innerHTML = '<tr><td colspan="8" style="text-align:center; color:var(--text-muted);">Chưa có môn học nào. Hãy bấm "+ Thêm Môn học mới".</td></tr>';
+  if (matches.length === 0) {
+    const message = query
+      ? 'Không tìm thấy môn học phù hợp. Hãy thử mã môn, tên môn hoặc tên giảng viên.'
+      : 'Chưa có môn học nào. Hãy bấm "+ Thêm Môn học mới".';
+    tbody.innerHTML = '<tr><td colspan="8" style="text-align:center; color:var(--text-muted);">' + message + '</td></tr>';
     return;
   }
 
-  tbody.innerHTML = globalData.subjects.map(s => `
+  tbody.innerHTML = matches.map(s => `
     <tr>
       <td><code>${s.ma_mon}</code></td>
       <td><strong>${s.ten_mon}</strong></td>

@@ -810,6 +810,14 @@ body {
   border-radius: 6px;
 }
 
+.material-table .material-id-column,
+.material-table .material-id-cell {
+  width: 235px;
+  min-width: 235px;
+  white-space: nowrap;
+}
+.material-table .material-id-cell code { display: inline-block; white-space: nowrap; }
+
 /* Action Buttons inside tables */
 .btn-sm {
   padding: 5px 12px;

@@ -59,19 +59,18 @@ function renderTaiLieuTable() {
     const message = query
       ? 'Không tìm thấy tài liệu phù hợp. Hãy thử tên tài liệu, tên môn hoặc loại tài liệu.'
       : 'Chưa có tài liệu học tập nào. Hãy bấm "+ Thêm Tài liệu mới".';
-    tbody.innerHTML = '<tr><td colspan="8" style="text-align:center; color:var(--text-muted);">' + message + '</td></tr>';
+    tbody.innerHTML = '<tr><td colspan="7" style="text-align:center; color:var(--text-muted);">' + message + '</td></tr>';
     return;
   }
 
   tbody.innerHTML = matches.map(m => `
     <tr>
-      <td><code>${m.ma_tai_lieu}</code></td>
+      <td class="material-id-cell"><code>${escapeMaterialHtml(m.ma_tai_lieu)}</code></td>
       <td><strong>${escapeMaterialHtml(m.ten_mon || 'Tài liệu chung')}</strong></td>
       <td>${escapeMaterialHtml(m.ten_tai_lieu)}</td>
       <td><span class="chip chip-priority-low">${escapeMaterialHtml(m.loai_tai_lieu)}</span></td>
       <td>${materialAccessLink(m.link)}</td>
       <td>${formatDate(m.ngay_them)}</td>
-      <td><span style="font-size:12px; font-family:var(--font-mono); color:var(--secondary-sky);">Ôn lại (Spaced repetition)</span></td>
       <td>
         <button class="btn-sm" onclick="deleteTaiLieu('${m.ma_tai_lieu}')">Xóa</button>
       </td>

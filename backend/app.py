@@ -68,9 +68,10 @@ def create_app() -> Flask:
     from routes.dashboard_routes import bp as dashboard_bp
     from routes.notification_routes import bp as notification_bp
 
+    from routes.quiz_routes import bp as quiz_bp
     for blueprint in [
         mon_hoc_bp, deadline_bp, nhat_ky_bp, tai_lieu_bp,
-        muc_tieu_bp, lich_hoc_bp, dashboard_bp, notification_bp,
+        muc_tieu_bp, lich_hoc_bp, dashboard_bp, notification_bp, quiz_bp,
     ]:
         app.register_blueprint(blueprint)
 

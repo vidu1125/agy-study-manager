@@ -62,6 +62,10 @@
           <span>Học từ vựng</span>
         </li>
         <li class="nav-item" data-tab="tab-vocab-analytics">
+        <li class="nav-item" data-tab="tab-quiz">
+          <span class="material-symbols-outlined">quiz</span>
+          <span>Quiz test</span>
+        </li>
           <span class="material-symbols-outlined">monitoring</span>
           <span>Phân tích từ vựng</span>
         </li>
@@ -471,6 +475,45 @@
           </section>
         </section>
 
+        <!-- TAB: QUIZ TEST MCQ -->
+        <section id="tab-quiz" class="tab-content" style="display:none;">
+          <div class="quiz-hero">
+            <div>
+              <div class="vocab-eyebrow"><span class="material-symbols-outlined">quiz</span> QUIZ TEST</div>
+              <h2>Kiểm tra kiến thức bằng trắc nghiệm.</h2>
+              <p>Tạo deck theo tên, import câu hỏi JSON rồi làm quiz với 4 hoặc 5 đáp án.</p>
+            </div>
+            <div class="vocab-toolbar">
+              <button class="btn-primary" onclick="openCreateQuizDeck()">
+                <span class="material-symbols-outlined">add_circle</span><span>Tạo quiz deck</span>
+              </button>
+            </div>
+          </div>
+          <div class="quiz-workspace">
+            <section class="card-box quiz-decks-panel">
+              <div class="section-title">
+                <span>QUIZ DECK CỦA BẠN</span>
+                <span class="quiz-live-label"><i></i> JSON · MCQ</span>
+              </div>
+              <div id="quizDeckList" class="quiz-deck-list">
+                <p class="vocab-empty">Đang tải quiz deck...</p>
+              </div>
+            </section>
+            <section id="quizPlayPanel" class="card-box quiz-play-panel" style="display:none;">
+              <div class="section-title quiz-play-heading">
+                <div><span>PHIÊN QUIZ</span><small id="quizPlayDeckName"></small></div>
+                <div class="quiz-session-tools">
+                  <span id="quizModeBadge" class="quiz-mode-badge"></span>
+                  <span id="quizTimer" class="quiz-timer" style="display:none;" aria-live="polite"></span>
+                  <button class="btn-sm" onclick="endQuizSession()"><span class="material-symbols-outlined">close</span> Kết thúc</button>
+                </div>
+              </div>
+              <div id="quizPlayArea"></div>
+            </section>
+          </div>
+        </section>
+
+
 
         <!-- TAB 6: PHÂN TÍCH TIẾN ĐỘ TỪ VỰNG -->
         <section id="tab-vocab-analytics" class="tab-content" style="display:none;">
@@ -738,6 +781,10 @@
           <span>Môn học</span>
         </button>
         <button type="button" onclick="mobileSwitchTab('tab-vocab-analytics')">
+        <button type="button" onclick="mobileSwitchTab('tab-quiz')">
+          <span class="material-symbols-outlined">quiz</span>
+          <span>Quiz test</span>
+        </button>
           <span class="material-symbols-outlined">insights</span>
           <span>Phân tích từ vựng</span>
         </button>
@@ -1535,6 +1582,132 @@
   </div>
 
 
+  <!-- MODAL: TẠO QUIZ DECK -->
+  <div class="modal-overlay" id="modalCreateQuizDeck">
+    <div class="modal-card" style="max-width:520px;">
+      <div class="modal-header">
+        <h3>TẠO QUIZ DECK</h3>
+        <button class="modal-close" onclick="closeModal('modalCreateQuizDeck')">&times;</button>
+      </div>
+      <div class="modal-body">
+        <div class="vocab-modal-note"><span class="material-symbols-outlined">quiz</span>Đặt tên deck, sau đó import file JSON hoặc dán nội dung câu hỏi để bắt đầu làm quiz.</div>
+        <div class="form-group">
+          <label>Tên quiz deck *</label>
+          <input type="text" id="quizDeckName" class="form-control" maxlength="160" placeholder="VD: AICB-P1 — Ngày 6">
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn-secondary" onclick="closeModal('modalCreateQuizDeck')">Hủy</button>
+        <button class="btn-primary" onclick="createQuizDeck()"><span class="material-symbols-outlined">create_new_folder</span> Tạo deck</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL: IMPORT QUIZ JSON -->
+  <div class="modal-overlay" id="modalQuizJsonImport">
+    <div class="modal-card vocab-import-modal">
+      <div class="modal-header">
+        <h3>IMPORT CÂU HỎI QUIZ TỪ JSON</h3>
+        <button class="modal-close" onclick="closeModal('modalQuizJsonImport')">&times;</button>
+      </div>
+      <div class="modal-body">
+        <div class="vocab-modal-note"><span class="material-symbols-outlined">info</span>Hỗ trợ đúng cấu trúc <code>option_A</code>…<code>option_E</code> và <code>correct_answer</code> như file mẫu của bạn. Mỗi câu cần đúng 4 hoặc 5 đáp án.</div>
+        <div class="form-group">
+          <label>Quiz deck nhận câu hỏi *</label>
+          <select id="quizImportDeck" class="form-control"></select>
+        </div>
+        <div class="vocab-import-tabs" role="tablist" aria-label="Cách import quiz JSON">
+          <button type="button" id="quizImportFileTab" class="vocab-import-tab active" onclick="setQuizImportMode('file')"><span class="material-symbols-outlined">upload_file</span> Tải file JSON</button>
+          <button type="button" id="quizImportPasteTab" class="vocab-import-tab" onclick="setQuizImportMode('paste')"><span class="material-symbols-outlined">content_paste</span> Dán JSON</button>
+        </div>
+        <div id="quizImportFilePanel" class="form-group">
+          <label>Chọn file JSON</label>
+          <input id="quizImportFile" type="file" class="form-control" accept="application/json,.json">
+          <small class="vocab-import-help">Tối đa 1.000 câu/lần và 5 MB. File chỉ được đọc trên trình duyệt để import.</small>
+        </div>
+        <div id="quizImportPastePanel" class="form-group" style="display:none;">
+          <label>Dán nội dung JSON</label>
+          <textarea id="quizImportJsonText" class="form-control vocab-import-textarea" rows="12" spellcheck="false" placeholder='{"questions":[{"question":"...","option_A":"...","option_B":"...","option_C":"...","option_D":"...","correct_answer":"A"}]}'></textarea>
+        </div>
+        <div class="vocab-import-schema quiz-import-schema">
+          <div class="vocab-import-schema-heading">
+            <div><span>CẤU TRÚC JSON MẪU</span><small>Các metadata ở đầu file như <code>quiz_title</code> hoặc <code>source_documents</code> là tùy chọn; hệ thống chỉ đọc mảng <code>questions</code>.</small></div>
+            <button type="button" class="btn-sm" onclick="copyQuizImportExample()"><span class="material-symbols-outlined">content_copy</span> Sao chép mẫu</button>
+          </div>
+          <pre id="quizImportExample"><code>{
+  "quiz_title": "AI Product &amp; Project Management — AICB-P1 Ngày 6",
+  "source_documents": ["AICB_Day06_AI_Product_Project_Management.md"],
+  "questions": [
+    {
+      "id": 1,
+      "question": "AI project management hiệu quả là sự kết hợp của yếu tố nào?",
+      "option_A": "Agile cộng scientific method",
+      "option_B": "Waterfall cộng kiểm soát cứng",
+      "option_C": "Scrum cố định",
+      "option_D": "Kanban cộng continuous delivery",
+      "correct_answer": "A",
+      "difficulty": "Dễ",
+      "source_quote": "AI project management hiệu quả = Agile cộng scientific method."
+    },
+    {
+      "question": "Ví dụ câu 5 đáp án",
+      "option_A": "Đáp án A", "option_B": "Đáp án B", "option_C": "Đáp án C",
+      "option_D": "Đáp án D", "option_E": "Đáp án E",
+      "correct_answer": "E"
+    }
+  ]
+}</code></pre>
+          <p><code>correct_answer</code> chấp nhận chữ cái A–E, số thứ tự 1–5 hoặc nguyên văn đáp án. Bạn cũng có thể dùng <code>options: []</code> và <code>correct_index</code> (đếm từ 0).</p>
+        </div>
+        <p id="quizImportStatus" class="vocab-import-status" aria-live="polite"></p>
+      </div>
+      <div class="modal-footer">
+        <button class="btn-secondary" onclick="closeModal('modalQuizJsonImport')">Hủy</button>
+        <button id="quizImportSubmit" class="btn-primary" onclick="submitQuizJsonImport()"><span class="material-symbols-outlined">playlist_add</span> Import câu hỏi</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL: CHỌN CHẾ ĐỘ LÀM QUIZ -->
+  <div class="modal-overlay" id="modalQuizMode">
+    <div class="modal-card quiz-mode-modal" style="max-width:600px;">
+      <div class="modal-header">
+        <h3>CHỌN CHẾ ĐỘ LÀM QUIZ</h3>
+        <button class="modal-close" onclick="closeModal('modalQuizMode')">&times;</button>
+      </div>
+      <div class="modal-body">
+        <div class="vocab-modal-note"><span class="material-symbols-outlined">quiz</span><span id="quizModeDeckLabel">Chọn cách bạn muốn làm bài.</span></div>
+        <div class="quiz-mode-grid">
+          <label class="quiz-mode-card selected" id="quizReviewModeCard">
+            <input type="radio" name="quizMode" value="review" checked onchange="setQuizPlayMode('review')">
+            <span class="material-symbols-outlined">auto_stories</span>
+            <strong>Ôn tập</strong>
+            <small>Chọn đáp án, xem đúng/sai, đáp án đúng và giải thích ngay sau mỗi câu.</small>
+          </label>
+          <label class="quiz-mode-card" id="quizExamModeCard">
+            <input type="radio" name="quizMode" value="exam" onchange="setQuizPlayMode('exam')">
+            <span class="material-symbols-outlined">timer</span>
+            <strong>Luyện thi</strong>
+            <small>Không hiện đáp án trong lúc làm. Nộp bài bất cứ lúc nào hoặc tự nộp khi hết giờ.</small>
+          </label>
+        </div>
+        <div id="quizExamDurationGroup" class="form-group quiz-exam-duration" style="display:none;">
+          <label for="quizExamDuration">Thời gian làm bài (phút)</label>
+          <div class="quiz-duration-input">
+            <input id="quizExamDuration" type="number" class="form-control" min="1" max="300" value="20" inputmode="numeric">
+            <span>1–300 phút</span>
+          </div>
+          <small>Đồng hồ chỉ chạy khi bạn bắt đầu. Hết giờ, bài sẽ được nộp và chấm tự động.</small>
+        </div>
+        <p id="quizModeStatus" class="vocab-import-status" aria-live="polite"></p>
+      </div>
+      <div class="modal-footer">
+        <button class="btn-secondary" onclick="closeModal('modalQuizMode')">Hủy</button>
+        <button class="btn-primary" onclick="beginSelectedQuiz()"><span class="material-symbols-outlined">play_arrow</span> Bắt đầu</button>
+      </div>
+    </div>
+  </div>
+
   <!-- Core & Feature Modules -->
   <script src="/static/js/modules/dashboard.js"></script>
   <script src="/static/js/modules/mon_hoc.js"></script>
@@ -1547,5 +1720,6 @@
   <script src="/static/js/modules/vocab.js"></script>
   <script src="/static/js/vocab_analytics.js"></script>
   <script src="/static/js/app.js"></script>
+  <script src="/static/js/modules/quiz.js"></script>
 </body>
 </html>

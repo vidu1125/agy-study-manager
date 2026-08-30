@@ -446,3 +446,48 @@ class VocabReviewLog(db.Model):
     interval_after_days = db.Column(db.Integer, nullable=False)
     time_taken_ms = db.Column(db.Integer, nullable=True)
 
+
+# =============================================================================
+# QUIZ MCQ — Deck trắc nghiệm độc lập
+# =============================================================================
+
+class QuizDeck(db.Model):
+    __tablename__ = 'QUIZ_DECK'
+
+    id = db.Column(db.Integer, primary_key=True, autoincrement=True)
+    name = db.Column(db.String(160), nullable=False)
+    created_at = db.Column(db.DateTime, nullable=False, default=datetime.datetime.utcnow)
+
+    questions = db.relationship('QuizQuestion', backref='deck', cascade='all, delete-orphan', lazy=True)
+
+    def to_dict(self, question_count: int | None = None):
+        return {
+            'id': self.id,
+            'name': self.name,
+            'created_at': self.created_at.isoformat() if self.created_at else None,
+            'question_count': question_count if question_count is not None else len(self.questions),
+        }
+
+
+class QuizQuestion(db.Model):
+    __tablename__ = 'QUIZ_QUESTION'
+
+    id = db.Column(db.Integer, primary_key=True, autoincrement=True)
+    deck_id = db.Column(db.Integer, db.ForeignKey('QUIZ_DECK.id'), nullable=False, index=True)
+    question = db.Column(db.Text, nullable=False)
+    options = db.Column(db.JSON, nullable=False)
+    correct_index = db.Column(db.Integer, nullable=False)
+    explanation = db.Column(db.Text, nullable=True)
+    created_at = db.Column(db.DateTime, nullable=False, default=datetime.datetime.utcnow)
+
+    def to_dict(self, include_answer: bool = False):
+        payload = {
+            'id': self.id,
+            'deck_id': self.deck_id,
+            'question': self.question,
+            'options': self.options or [],
+            'explanation': self.explanation or '',
+        }
+        if include_answer:
+            payload['correct_index'] = self.correct_index
+        return payload

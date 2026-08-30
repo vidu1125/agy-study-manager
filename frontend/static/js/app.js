@@ -11,6 +11,7 @@ let globalData = {
   goals: [],
   extensionLogs: [],
   vocabDecks: [],
+  quizDecks: [],
   studySummary: null
 };
 
@@ -120,6 +121,7 @@ function switchTab(tabId) {
     'tab-deadline': 'Quản lý Deadline & Nhiệm vụ',
     'tab-tailieu': 'Kho Tài liệu Học tập',
     'tab-vocab': 'Học từ vựng Spaced Repetition',
+    'tab-quiz': 'Quiz Test MCQ',
     'tab-vocab-analytics': 'Phân tích tiến độ từ vựng',
     'tab-nhatky': 'Nhật ký Thời gian Thực tế',
     'tab-muctieu': 'Mục tiêu Cá nhân',
@@ -137,6 +139,7 @@ function switchTab(tabId) {
   else if (tabId === 'tab-deadline') renderAllDeadlinesTable();
   else if (tabId === 'tab-tailieu') renderTaiLieuTable();
   else if (tabId === 'tab-vocab') renderVocabWorkspace();
+  else if (tabId === 'tab-quiz') renderQuizWorkspace();
   else if (tabId === 'tab-vocab-analytics') renderVocabAnalytics();
   else if (tabId === 'tab-nhatky') renderNhatKyTable();
   else if (tabId === 'tab-muctieu') renderMucTieuTable();
@@ -206,7 +209,8 @@ async function loadAllData() {
       fetchTimeLogs(),
       fetchGoals(),
       fetchDashboardData(),
-      fetchVocabDecks().catch(() => [])
+      fetchVocabDecks().catch(() => []),
+      fetchQuizDecks().catch(() => [])
     ]);
   } catch (err) {
     console.error('Lỗi khi tải dữ liệu master:', err);

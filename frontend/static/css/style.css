@@ -2801,3 +2801,21 @@ textarea {
   .quiz-result > div { flex-wrap: wrap; justify-content: center; }
   .quiz-review-header { align-items: flex-start; flex-direction: column-reverse; }
 }
+
+/* Quiz question shuffle control */
+.quiz-shuffle-toggle {
+  display: flex;
+  align-items: flex-start;
+  gap: 11px;
+  padding: 13px 14px;
+  border: 1px solid var(--border-color);
+  border-radius: 11px;
+  background: rgba(255, 255, 255, .02);
+  cursor: pointer;
+}
+.quiz-shuffle-toggle:has(input:checked) { border-color: rgba(34, 211, 238, .42); background: rgba(34, 211, 238, .08); }
+.quiz-shuffle-toggle input { width: 17px; height: 17px; margin-top: 2px; accent-color: var(--primary-cyan); cursor: pointer; }
+.quiz-shuffle-toggle > .material-symbols-outlined { margin-top: 1px; color: var(--primary-cyan); font-size: 21px; }
+.quiz-shuffle-toggle > span:last-child { min-width: 0; }
+.quiz-shuffle-toggle strong { display: block; color: #fff; font-size: 13px; }
+.quiz-shuffle-toggle small { display: block; margin-top: 3px; color: var(--text-muted); font-size: 11px; line-height: 1.5; }

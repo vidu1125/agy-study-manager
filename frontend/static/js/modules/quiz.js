@@ -14,6 +14,7 @@ let quizState = {
   mode: 'review',
   durationMinutes: 0,
   deadlineAt: null,
+  shuffleQuestions: true,
   answers: {},
   results: {},
   submitted: false,
@@ -208,6 +209,7 @@ function openQuizModePicker(deckId, preferredMode = 'review') {
     ? 'Deck: ' + deck.name + '. Chọn cách bạn muốn làm bài.'
     : 'Chọn cách bạn muốn làm bài.';
   document.getElementById('quizExamDuration').value = '20';
+  document.getElementById('quizShuffleQuestions').checked = true;
   setQuizModeStatus('');
   setQuizPlayMode(preferredMode);
   openModal('modalQuizMode');
@@ -230,6 +232,7 @@ function setQuizModeStatus(message, isError = false) {
 
 function beginSelectedQuiz() {
   const mode = document.querySelector('input[name="quizMode"]:checked')?.value || 'review';
+  const shuffleQuestions = document.getElementById('quizShuffleQuestions').checked;
   let durationMinutes = 0;
   if (mode === 'exam') {
     durationMinutes = Number(document.getElementById('quizExamDuration').value);
@@ -239,12 +242,12 @@ function beginSelectedQuiz() {
     }
   }
   closeModal('modalQuizMode');
-  beginQuiz(quizState.selectedDeckId, mode, durationMinutes);
+  beginQuiz(quizState.selectedDeckId, mode, durationMinutes, shuffleQuestions);
 }
 
-async function beginQuiz(deckId, mode = 'review', durationMinutes = 0) {
+async function beginQuiz(deckId, mode = 'review', durationMinutes = 0, shuffleQuestions = true) {
   try {
-    const data = await quizFetch('/api/quiz/decks/' + deckId + '/play');
+    const data = await quizFetch('/api/quiz/decks/' + deckId + '/play?shuffle=' + (shuffleQuestions ? 'true' : 'false'));
     clearQuizTimer();
     quizState = {
       selectedDeckId: deckId,
@@ -257,6 +260,7 @@ async function beginQuiz(deckId, mode = 'review', durationMinutes = 0) {
       mode,
       durationMinutes,
       deadlineAt: mode === 'exam' ? Date.now() + durationMinutes * 60 * 1000 : null,
+      shuffleQuestions,
       answers: {},
       results: {},
       submitted: false,
@@ -457,7 +461,7 @@ function renderExamAnswerReview() {
 }
 
 function restartQuiz() {
-  beginQuiz(quizState.selectedDeckId, quizState.mode, quizState.durationMinutes);
+  beginQuiz(quizState.selectedDeckId, quizState.mode, quizState.durationMinutes, quizState.shuffleQuestions);
 }
 
 function endQuizSession() {

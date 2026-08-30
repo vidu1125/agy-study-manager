@@ -38,7 +38,12 @@ def import_quiz_questions(deck_id):
 
 @bp.route('/api/quiz/decks/<int:deck_id>/play', methods=['GET'])
 def get_playable_quiz(deck_id):
-    return _result(lambda: QuizService.playable_questions(deck_id))
+    shuffle_value = request.args.get('shuffle', 'true').strip().lower()
+    if shuffle_value not in {'true', 'false', '1', '0'}:
+        return jsonify({'error': 'shuffle phải là true hoặc false'}), 400
+    return _result(lambda: QuizService.playable_questions(
+        deck_id, shuffle_questions=shuffle_value in {'true', '1'}
+    ))
 
 
 @bp.route('/api/quiz/decks/<int:deck_id>/submit', methods=['POST'])

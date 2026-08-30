@@ -84,12 +84,13 @@ class QuizService:
         }
 
     @staticmethod
-    def playable_questions(deck_id: int) -> dict:
+    def playable_questions(deck_id: int, shuffle_questions: bool = True) -> dict:
         deck = QuizService._get_deck(deck_id)
-        questions = QuizQuestion.query.filter_by(deck_id=deck.id).all()
+        questions = QuizQuestion.query.filter_by(deck_id=deck.id).order_by(QuizQuestion.id).all()
         if not questions:
             raise ValueError('Deck này chưa có câu hỏi. Hãy import JSON trước.')
-        random.shuffle(questions)
+        if shuffle_questions:
+            random.shuffle(questions)
         return {
             'deck': deck.to_dict(question_count=len(questions)),
             'questions': [question.to_dict(include_answer=False) for question in questions],

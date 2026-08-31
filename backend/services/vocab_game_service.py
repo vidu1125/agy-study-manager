@@ -228,9 +228,9 @@ class VocabGameService:
                 {"id": f"meaning-{card.id}", "card_id": card.id, "type": "meaning", "value": card.note.meaning},
             ])
         random.shuffle(tiles)
-        mature = [card for card in cards if card.state == "review" and card.interval_days >= 21][:25]
+        fill_cards = cards[:25]
         fill_source = [{"card_id": card.id, "word": card.note.word, "meaning": card.note.meaning,
-                        "tags": card.note.tags or "", "example": card.note.example or ""} for card in mature]
+                        "tags": card.note.tags or "", "example": card.note.example or ""} for card in fill_cards]
         fill_status = "pending" if fill_source else "not-needed"
         mcq_cards = [card for card in cards if card.state in {"new", "learning", "relearning"}][:25]
         if not mcq_cards:

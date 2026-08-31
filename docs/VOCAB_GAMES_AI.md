@@ -5,7 +5,7 @@ Mỗi lần bấm nút play của một deck, web tạo một phiên ôn gồm:
 1. Lật thẻ để nhắc lại nhanh.
 2. **Word Rush**: trả lời có timer 12 giây.
 3. **Matching Pairs**: ghép từ với nghĩa.
-4. **Fill in the blank**: chỉ dùng thẻ mature (review, interval từ 21 ngày).
+4. **Fill in the blank**: dùng tối đa 25 thẻ đến hạn của phiên học, không yêu cầu interval tối thiểu.
 5. **Multiple choice**: ưu tiên thẻ mới, learning và relearning.
 
 ## Bảo toàn lịch Spaced Repetition
@@ -50,7 +50,7 @@ Word Rush dành tối đa 5 giây cho toàn bộ chuỗi provider khi cần ch�
 
 ## Dữ liệu gửi tới provider
 
-Để tạo câu điền từ, backend chỉ gửi dữ liệu của thẻ mature:
+Để tạo câu điền từ, backend chỉ gửi dữ liệu của tối đa 25 thẻ đến hạn trong phiên:
 
 - word
 - meaning
@@ -76,7 +76,7 @@ Word Rush không cần chờ provider AI.
 1. Vào service Railway → **Variables**.
 2. Thêm các key muốn dùng; không cần thêm đủ năm key.
 3. Nhấn **Deploy** hoặc push commit lên nhánh production nếu đã bật Auto Deploy.
-4. Mở một deck có thẻ review và interval từ 21 ngày để thấy chặng Fill in the blank.
+4. Mở một deck có ít nhất một thẻ đến hạn để thấy chặng Fill in the blank.
 
 Không có key AI vẫn deploy bình thường. Chặng Fill in the blank hiện câu local fallback,
 giúp luồng ôn tập không bị gián đoạn.

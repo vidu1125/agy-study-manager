@@ -323,7 +323,7 @@ async function prepareGameFillBlank() {
   if (vocabGameState.fillPreparing) return;
   vocabGameState.fillPreparing = true;
   document.getElementById('vocabGameArea').innerHTML =
-    gameTitle('CHẶNG 4 · FILL IN THE BLANK', 'Đang chuẩn bị ngữ cảnh', 'AI đang tạo câu từ các từ mature của deck. Các chặng khác không phải chờ bước này.', '…') +
+    gameTitle('CHẶNG 4 · FILL IN THE BLANK', 'Đang chuẩn bị ngữ cảnh', 'AI đang tạo câu từ các từ đến hạn của phiên học. Các chặng khác không phải chờ bước này.', '…') +
     '<div class="vocab-game-loading"><span class="material-symbols-outlined">auto_awesome</span><strong>Đang tạo tối đa 25 câu điền từ…</strong><small>Bạn có thể quay lại sau ít phút nếu provider AI đang bận.</small></div>';
   try {
     const data = await vocabFetch('/api/vocab/game-sessions/' + vocabGameState.sessionId + '/prepare-fill-blank', { method: 'POST' });

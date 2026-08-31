@@ -2,6 +2,7 @@
 from flask import Blueprint, jsonify, request
 
 from services.vocab_service import VocabService
+from services.vocab_game_service import VocabGameService
 
 
 bp = Blueprint("vocab", __name__)
@@ -88,6 +89,41 @@ def answer_card(deck_id, card_id):
 @bp.route("/api/vocab/decks/<int:deck_id>/cards/<int:card_id>/preview", methods=["GET"])
 def preview_card(deck_id, card_id):
     return _result(lambda: {"intervals": VocabService.preview_intervals(deck_id, card_id)})
+
+
+@bp.route("/api/vocab/decks/<int:deck_id>/game-sessions", methods=["POST"])
+def start_game_session(deck_id):
+    return _result(lambda: VocabGameService.start(deck_id), 201)
+
+
+@bp.route("/api/vocab/game-sessions/<session_id>", methods=["GET"])
+def get_game_session(session_id):
+    return _result(lambda: VocabGameService.get(session_id))
+
+
+@bp.route("/api/vocab/game-sessions/<session_id>/word-rush", methods=["POST"])
+def answer_word_rush(session_id):
+    return _result(lambda: VocabGameService.word_rush_answer(session_id, request.get_json(silent=True) or {}))
+
+
+@bp.route("/api/vocab/game-sessions/<session_id>/matching", methods=["POST"])
+def answer_matching(session_id):
+    return _result(lambda: VocabGameService.matching_attempt(session_id, request.get_json(silent=True) or {}))
+
+
+@bp.route("/api/vocab/game-sessions/<session_id>/fill-blank", methods=["POST"])
+def answer_fill_blank(session_id):
+    return _result(lambda: VocabGameService.fill_blank_answer(session_id, request.get_json(silent=True) or {}))
+
+
+@bp.route("/api/vocab/game-sessions/<session_id>/multiple-choice", methods=["POST"])
+def answer_multiple_choice(session_id):
+    return _result(lambda: VocabGameService.multiple_choice_answer(session_id, request.get_json(silent=True) or {}))
+
+
+@bp.route("/api/vocab/game-sessions/<session_id>/finish", methods=["POST"])
+def finish_game_session(session_id):
+    return _result(lambda: VocabGameService.finish(session_id))
 
 
 @bp.route("/api/vocab/decks/<int:deck_id>/cards/<int:card_id>/suspend", methods=["POST"])

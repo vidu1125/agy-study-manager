@@ -448,6 +448,42 @@ class VocabReviewLog(db.Model):
 
 
 # =============================================================================
+# VOCABULARY GAME SESSION — Five-stage SRS practice
+# =============================================================================
+
+class VocabGameSession(db.Model):
+    """Snapshot của due queue và tín hiệu từ game trước khi áp dụng SRS một lần."""
+    __tablename__ = 'VOCAB_GAME_SESSION'
+
+    id = db.Column(db.String(36), primary_key=True)
+    deck_id = db.Column(db.Integer, db.ForeignKey('VOCAB_DECK.id'), nullable=False, index=True)
+    study_session_id = db.Column(db.String(36), db.ForeignKey('VOCAB_STUDY_SESSION.id'), nullable=False)
+    card_ids = db.Column(db.JSON, nullable=False, default=list)
+    stage_payload = db.Column(db.JSON, nullable=False, default=dict)
+    stage_results = db.Column(db.JSON, nullable=False, default=dict)
+    points = db.Column(db.Integer, nullable=False, default=0)
+    best_streak = db.Column(db.Integer, nullable=False, default=0)
+    started_at = db.Column(db.DateTime, nullable=False, default=datetime.datetime.utcnow)
+    ended_at = db.Column(db.DateTime, nullable=True)
+    applied_at = db.Column(db.DateTime, nullable=True)
+
+    def to_dict(self):
+        return {
+            'id': self.id,
+            'deck_id': self.deck_id,
+            'study_session_id': self.study_session_id,
+            'card_ids': self.card_ids or [],
+            'stage_payload': self.stage_payload or {},
+            'stage_results': self.stage_results or {},
+            'points': self.points,
+            'best_streak': self.best_streak,
+            'started_at': self.started_at.isoformat() if self.started_at else None,
+            'ended_at': self.ended_at.isoformat() if self.ended_at else None,
+            'applied_at': self.applied_at.isoformat() if self.applied_at else None,
+        }
+
+
+# =============================================================================
 # QUIZ MCQ — Deck trắc nghiệm độc lập
 # =============================================================================
 

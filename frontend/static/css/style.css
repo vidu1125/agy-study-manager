@@ -1849,6 +1849,51 @@ input[type=range] {
 }
 
 /* ===========================================================================
+   VOCABULARY GAME — Five-stage SRS journey
+   =========================================================================== */
+.vocab-game-panel {
+  margin: 18px 0; overflow: hidden; border: 1px solid rgba(34,211,238,.34);
+  border-radius: 20px; background: radial-gradient(circle at 12% 4%,rgba(34,211,238,.15),transparent 27%), radial-gradient(circle at 94% 95%,rgba(168,85,247,.18),transparent 36%), linear-gradient(135deg,#07141b,#070813 58%,#120b20);
+  box-shadow: 0 26px 70px rgba(0,0,0,.28);
+}
+.vocab-game-topbar,.vocab-game-heading,.vocab-game-metrics,.vocab-game-stage-rail,.game-actions,.game-feedback,.vocab-game-finish > div { display:flex; align-items:center; }
+.vocab-game-topbar { justify-content:space-between; gap:18px; padding:24px 28px 18px; border-bottom:1px solid rgba(148,163,184,.15); }
+.vocab-game-eyebrow,.vocab-game-heading p,.game-card-label { margin:0; color:var(--primary-cyan); font-family:var(--font-mono); font-size:10px; font-weight:700; letter-spacing:.16em; }
+.vocab-game-topbar h2 { margin:5px 0 0; color:#fff; font-size:22px; }
+.vocab-game-metrics { gap:10px; flex-wrap:wrap; justify-content:flex-end; }
+.vocab-game-metrics > span { display:inline-flex; align-items:center; gap:4px; padding:8px 10px; border:1px solid rgba(148,163,184,.2); border-radius:9px; background:rgba(2,6,23,.36); color:var(--text-muted); font-size:12px; }
+.vocab-game-metrics i { color:var(--accent-amber); font-size:16px; }.vocab-game-metrics b { color:#fff; }
+.vocab-game-stage-rail { gap:7px; overflow-x:auto; padding:13px 28px; border-bottom:1px solid rgba(148,163,184,.12); scrollbar-width:thin; }
+.vocab-game-stage { display:inline-flex; flex:0 0 auto; align-items:center; gap:6px; padding:7px 9px; border:1px solid rgba(148,163,184,.18); border-radius:999px; color:#64748b; font-size:11px; transition:.2s ease; }
+.vocab-game-stage i { font-size:15px; }.vocab-game-stage.active { border-color:rgba(34,211,238,.7); background:rgba(34,211,238,.1); color:#cffafe; }.vocab-game-stage.done { border-color:rgba(74,222,128,.42); color:#86efac; }
+.vocab-game-area { min-height:430px; padding:30px; }
+.vocab-game-heading { justify-content:space-between; gap:16px; max-width:930px; margin:0 auto 18px; }
+.vocab-game-heading h3 { margin:5px 0 4px; color:#fff; font-size:20px; }.vocab-game-heading span { color:var(--text-muted); font-size:12px; }
+.vocab-game-heading > b { flex:0 0 auto; padding:8px 11px; border-radius:8px; background:rgba(2,6,23,.6); color:#a5f3fc; font:700 12px var(--font-mono); }
+.vocab-game-card { position:relative; max-width:930px; min-height:280px; margin:auto; padding:30px; border:1px solid rgba(34,211,238,.24); border-radius:18px; background:rgba(1,9,15,.65); text-align:center; }
+.vocab-game-card h1 { margin:30px 0; color:#fff; font-size:clamp(34px,7vw,62px); line-height:1.13; }
+.game-answer { padding:17px; border-left:4px solid var(--accent-emerald); border-radius:0 13px 13px 0; background:rgba(22,163,74,.1); }
+.game-answer span { display:block; color:#86efac; font:700 10px var(--font-mono); letter-spacing:.13em; }.game-answer strong { display:block; margin:7px 0; color:#ecfdf5; font-size:21px; }.game-answer p { margin:0; color:var(--text-muted); font-size:14px; }
+.game-answer.hidden { min-height:58px; border-left-color:rgba(148,163,184,.3); background:rgba(148,163,184,.06); }.game-actions { justify-content:center; gap:10px; margin-top:24px; }
+.game-timer { height:7px; overflow:hidden; margin:-7px 0 18px; border-radius:999px; background:rgba(148,163,184,.16); }.game-timer div { width:100%; height:100%; background:linear-gradient(90deg,var(--accent-rose),var(--accent-amber),var(--primary-cyan)); transition:width .06s linear; }.game-timer b { display:block; margin-top:7px; color:var(--text-muted); font:700 12px var(--font-mono); }
+.rush-card h1 { margin:38px 0 28px; font-size:clamp(28px,5vw,46px); }.game-audio { position:absolute; top:28px; right:28px; width:42px; height:42px; border:1px solid rgba(34,211,238,.35); border-radius:50%; background:rgba(34,211,238,.1); color:var(--primary-cyan); cursor:pointer; }
+.game-input { width:min(580px,100%); min-height:50px; padding:12px 15px; border:1px solid rgba(148,163,184,.3); border-radius:11px; outline:0; background:rgba(2,6,23,.7); color:#fff; font-size:16px; }.game-input:focus { border-color:var(--primary-cyan); box-shadow:0 0 0 3px rgba(34,211,238,.12); }
+.rush-card form,.fill-card form { display:flex; justify-content:center; gap:9px; }
+.game-feedback { justify-content:center; gap:12px; margin:17px auto 0; padding:11px 14px; border-radius:10px; }.game-feedback.correct { background:rgba(74,222,128,.12); color:#bbf7d0; }.game-feedback.wrong { background:rgba(251,113,133,.12); color:#fecdd3; }.game-feedback .btn-secondary { margin-left:3px; }
+.game-match-grid { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:10px; }.game-match-tile { min-height:72px; padding:10px; border:1px solid rgba(148,163,184,.22); border-radius:12px; background:rgba(15,23,42,.58); color:#e2e8f0; cursor:pointer; font-size:15px; transition:.16s ease; }
+.game-match-tile:hover,.game-match-tile.selected { border-color:var(--primary-cyan); background:rgba(34,211,238,.12); transform:translateY(-1px); }.game-match-tile.matched { border-color:rgba(74,222,128,.65); background:rgba(74,222,128,.14); color:#bbf7d0; }.game-tip { margin:16px 0 0; color:var(--text-muted); font-size:12px; }
+.fill-card { text-align:left; }.fill-card blockquote { margin:10px 0 20px; padding:22px; border-left:4px solid #a855f7; border-radius:0 12px 12px 0; background:rgba(168,85,247,.09); color:#f5f3ff; font-size:clamp(19px,3vw,26px); font-weight:600; line-height:1.55; }
+.game-hint,.game-hint-btn { margin:0 0 16px; color:#fcd34d; font-size:13px; }.game-hint { display:flex; gap:6px; align-items:center; }.game-hint-btn { padding:0; border:0; background:none; text-decoration:underline; cursor:pointer; }
+.mcq-card h2 { margin:8px auto 25px; max-width:720px; color:#fff; font-size:clamp(21px,4vw,31px); line-height:1.35; }.game-option-list { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:10px; text-align:left; }
+.game-option { display:flex; align-items:center; gap:11px; min-height:62px; padding:11px; border:1px solid rgba(148,163,184,.23); border-radius:12px; background:rgba(15,23,42,.54); color:#e2e8f0; cursor:pointer; font-size:14px; text-align:left; }.game-option:hover:not(:disabled) { border-color:#a855f7; background:rgba(168,85,247,.13); }.game-option b { display:grid; width:27px; height:27px; flex:0 0 auto; place-items:center; border-radius:50%; background:rgba(168,85,247,.2); color:#e9d5ff; font:700 12px var(--font-mono); }
+.vocab-game-loading,.vocab-game-empty,.vocab-game-finish { display:flex; min-height:320px; flex-direction:column; align-items:center; justify-content:center; gap:10px; text-align:center; }.vocab-game-loading .material-symbols-outlined,.vocab-game-empty > i,.vocab-game-finish > .material-symbols-outlined { color:var(--primary-cyan); font-size:46px; }.vocab-game-loading small,.vocab-game-empty p,.vocab-game-finish p { max-width:550px; margin:0; color:var(--text-muted); }.vocab-game-empty h3,.vocab-game-finish h2 { margin:0; color:#fff; }.vocab-game-finish > .material-symbols-outlined { color:#fbbf24; font-size:62px; }
+.vocab-game-finish > div { flex-wrap:wrap; justify-content:center; gap:6px 11px; margin:10px 0 13px; }.vocab-game-finish b { color:#fff; font:800 23px var(--font-mono); }.vocab-game-finish span { color:var(--text-muted); font-size:12px; }
+@media (max-width:700px) {
+  .vocab-game-topbar { align-items:flex-start; flex-direction:column; padding:19px 17px 15px; }.vocab-game-metrics { justify-content:flex-start; }.vocab-game-metrics .btn-sm { margin-left:auto; }.vocab-game-stage-rail { padding:10px 17px; }.vocab-game-area { min-height:420px; padding:19px 12px; }
+  .vocab-game-heading { align-items:flex-start; flex-direction:column; }.vocab-game-card { min-height:300px; padding:22px 15px; }.vocab-game-card h1 { margin:26px 0; }.rush-card form,.fill-card form { align-items:stretch; flex-direction:column; }.game-match-grid,.game-option-list { grid-template-columns:1fr; }.game-match-tile { min-height:58px; }.game-feedback { align-items:stretch; flex-direction:column; }.game-audio { top:18px; right:17px; }
+}
+
+/* ===========================================================================
    VOCABULARY ANALYTICS — LEARNING INTELLIGENCE DASHBOARD
    =========================================================================== */
 .vocab-analytics-header {

@@ -82,7 +82,7 @@ function renderVocabDeckList() {
           <span class="vocab-deck-description">${escapeVocabHtml(deck.description || 'Basic Vocabulary · 2 chiều')}</span>
           <span class="vocab-badges"><b class="vocab-badge new">${deck.remaining?.new || 0} mới</b><b class="vocab-badge review">${(deck.remaining?.review || 0) + (deck.remaining?.learning || 0)} ôn</b></span>
         </button>
-        <button class="vocab-start-btn" onclick="startVocabSession(${deck.id})" title="Bắt đầu học">▶</button>
+        <button class="vocab-start-btn" onclick="startVocabGame(${deck.id})" title="Bắt đầu hành trình 5 chặng">▶</button>
       </article>`).join('')}
     <div class="vocab-total">Tổng hôm nay: <strong>${totals.new} thẻ mới</strong> · <strong>${totals.review + totals.learning} thẻ cần ôn</strong></div>`;
 }

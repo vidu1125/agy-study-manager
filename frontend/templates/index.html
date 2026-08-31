@@ -436,6 +436,23 @@
             </section>
           </div>
 
+          <section id="vocabGamePanel" class="vocab-game-panel" style="display:none;" aria-live="polite">
+            <div class="vocab-game-topbar">
+              <div>
+                <p class="vocab-game-eyebrow">HÀNH TRÌNH ÔN TẬP · SRS</p>
+                <h2 id="vocabGameDeckName">Deck từ vựng</h2>
+              </div>
+              <div class="vocab-game-metrics" aria-label="Tiến độ trò chơi">
+                <span><i class="material-symbols-outlined">bolt</i> <b id="vocabGamePoints">0</b> điểm</span>
+                <span><i class="material-symbols-outlined">local_fire_department</i> <b id="vocabGameStreak">0</b> streak</span>
+                <button class="btn-sm" onclick="endVocabGame(true)"><span class="material-symbols-outlined">close</span> Lưu &amp; kết thúc</button>
+              </div>
+            </div>
+            <div id="vocabGameStageRail" class="vocab-game-stage-rail" aria-label="Năm chặng ôn tập"></div>
+            <div id="vocabGameArea" class="vocab-game-area"></div>
+          </section>
+
+
           <section id="vocabDetailPanel" class="card-box vocab-detail-panel" style="display:none;">
             <div class="section-title vocab-detail-heading">
               <span id="vocabDetailTitle">THẺ TRONG DECK</span>
@@ -1722,6 +1739,7 @@
   <script src="/static/js/modules/lich_hoc.js"></script>
   <script src="/static/js/modules/notifications.js"></script>
   <script src="/static/js/modules/vocab.js"></script>
+  <script src="/static/js/modules/vocab_game.js"></script>
   <script src="/static/js/vocab_analytics.js"></script>
   <script src="/static/js/app.js"></script>
   <script src="/static/js/modules/quiz.js"></script>

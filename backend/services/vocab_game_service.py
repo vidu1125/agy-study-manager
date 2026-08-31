@@ -41,18 +41,53 @@ class VocabGameService:
         return cls._public(game, VocabService._get_deck(game.deck_id))
 
     @classmethod
+    def prepare_fill_blank(cls, session_id: str) -> dict:
+        """Tạo câu chặng 4 khi người học thực sự mở chặng này."""
+        game = cls._get_game(session_id)
+        payload = dict(game.stage_payload or {})
+        if payload.get("fill_source") == "pending":
+            questions, source = VocabAiGenerator.generate_fill_questions(payload.get("fill_input", []))
+            payload["fill_blank"] = questions
+            payload["fill_source"] = source
+            game.stage_payload = payload
+            db.session.commit()
+
+        current = game.stage_payload or {}
+        return {
+            "items": [
+                {key: value for key, value in item.items() if key != "answer"}
+                for item in current.get("fill_blank", [])
+            ],
+            "source": current.get("fill_source", "not-needed"),
+        }
+
+    @classmethod
     def word_rush_answer(cls, session_id: str, data: dict) -> dict:
         game = cls._get_game(session_id)
         item = cls._item(game, "word_rush", data.get("item_id"))
         if cls._already_answered(game, "word_rush", item["id"]):
             return cls._event_response(game, True, "Đã ghi nhận câu trả lời này.")
-        correct = cls._same(data.get("answer"), item["answer"])
         elapsed = cls._elapsed(data.get("time_taken_ms"))
-        rating = "good" if correct and elapsed <= 8000 else ("hard" if correct else "again")
+        answer = data.get("answer")
+        if cls._same(answer, item["answer"]):
+            evaluation = {"accepted": True, "quality": "exact", "score": 25,
+                          "feedback": "Chính xác tuyệt đối.", "source": "local-exact"}
+        else:
+            evaluation = VocabAiGenerator.evaluate_word_rush(item["prompt"], item["answer"], answer)
+        correct = evaluation["accepted"]
+        quality = evaluation["quality"]
+        rating = "again"
+        if correct:
+            rating = "hard" if elapsed > 8000 or quality == "partial" else "good"
+        awarded = evaluation["score"] if rating == "good" else min(evaluation["score"], 10)
+        if elapsed > 8000:
+            awarded = min(awarded, 10)
         cls._mark_answered(game, "word_rush", item["id"])
         cls._signal(game, item["card_id"], rating, elapsed)
-        cls._commit_event(game, correct, rating)
-        return cls._event_response(game, correct, "Chính xác!" if correct else f"Đáp án: {item['answer']}")
+        cls._commit_event(game, correct, rating, awarded)
+        message = evaluation["feedback"] if correct else f"{evaluation['feedback']} Đáp án: {item['answer']}"
+        return {**cls._event_response(game, correct, message), "quality": quality,
+                "score_awarded": awarded, "evaluation_source": evaluation["source"]}
 
     @classmethod
     def matching_attempt(cls, session_id: str, data: dict) -> dict:
@@ -196,7 +231,7 @@ class VocabGameService:
         mature = [card for card in cards if card.state == "review" and card.interval_days >= 21][:25]
         fill_source = [{"card_id": card.id, "word": card.note.word, "meaning": card.note.meaning,
                         "tags": card.note.tags or "", "example": card.note.example or ""} for card in mature]
-        fills, source = VocabAiGenerator.generate_fill_questions(fill_source)
+        fill_status = "pending" if fill_source else "not-needed"
         mcq_cards = [card for card in cards if card.state in {"new", "learning", "relearning"}][:25]
         if not mcq_cards:
             mcq_cards = [card for card in cards if card.interval_days < 21][:25]
@@ -204,8 +239,9 @@ class VocabGameService:
             "review": review,
             "word_rush": rush,
             "matching": {"tiles": tiles, "pair_count": len(pair_cards)},
-            "fill_blank": fills,
-            "fill_source": source,
+            "fill_blank": [],
+            "fill_source": fill_status,
+            "fill_input": fill_source,
             "multiple_choice": cls._mcq(mcq_cards, cards),
         }
 
@@ -283,8 +319,8 @@ class VocabGameService:
         game.stage_results = results
 
     @staticmethod
-    def _commit_event(game, correct, rating):
-        points = 18 if rating == "good" else (10 if rating == "hard" else 0)
+    def _commit_event(game, correct, rating, awarded_points=None):
+        points = awarded_points if awarded_points is not None else (18 if rating == "good" else (10 if rating == "hard" else 0))
         results = dict(game.stage_results or {})
         streak = int(results.get("streak", 0))
         streak = streak + 1 if correct else 0
@@ -341,6 +377,7 @@ class VocabGameService:
             },
             "fill_blank": [{key: value for key, value in item.items() if key != "answer"} for item in payload.get("fill_blank", [])],
             "fill_source": payload.get("fill_source", "not-needed"),
+            "fill_count": len(payload.get("fill_input", [])),
             "multiple_choice": [{key: value for key, value in item.items() if key != "answer"} for item in payload.get("multiple_choice", [])],
         }
         return {

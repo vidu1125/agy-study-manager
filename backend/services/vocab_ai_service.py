@@ -2,6 +2,7 @@
 import json
 import os
 import re
+import time
 
 import requests
 
@@ -35,6 +36,79 @@ class VocabAiGenerator:
                 continue
         return cls._local_questions(payload), "local-fallback"
 
+    @classmethod
+    def evaluate_word_rush(cls, prompt: str, expected_answer: str, learner_answer: str) -> dict:
+        """Dùng LLM đánh giá synonym nghĩa gần đúng; fallback bảo thủ nếu lỗi."""
+        answer = str(learner_answer or "").strip()
+        expected = str(expected_answer or "").strip()
+        if not answer:
+            return {"accepted": False, "quality": "wrong", "score": 0,
+                    "feedback": "Bạn chưa nhập đáp án.", "source": "local"}
+
+        instructions = (
+            "You are a strict but fair English-Vietnamese vocabulary evaluator. "
+            "Judge the learner answer against the expected answer for the supplied prompt. "
+            "Accept a Vietnamese synonym only when it preserves the target meaning. "
+            "Do not accept a related but different word, wrong part of speech, or vague answer. "
+            "Return JSON only with accepted boolean, quality exact or acceptable or partial or wrong, "
+            "score integer from 0 to 25, and a short Vietnamese feedback. "
+            "Partial answers score at most 10."
+        )
+        payload = {
+            "prompt": prompt,
+            "expected_answer": expected,
+            "learner_answer": answer,
+        }
+        try:
+            total_budget = float(os.getenv("WORD_RUSH_LLM_BUDGET_SECONDS", "5"))
+        except ValueError:
+            total_budget = 5.0
+        deadline = time.monotonic() + max(1.0, min(total_budget, 10.0))
+        for label, url, key, model in cls._providers():
+            remaining = deadline - time.monotonic()
+            if remaining <= 0:
+                break
+            try:
+                response = requests.post(
+                    url,
+                    headers={"Authorization": f"Bearer {key}", "Content-Type": "application/json"},
+                    json={
+                        "model": model,
+                        "temperature": 0,
+                        "response_format": {"type": "json_object"},
+                        "messages": [
+                            {"role": "system", "content": instructions},
+                            {"role": "user", "content": json.dumps(payload, ensure_ascii=False)},
+                        ],
+                    },
+                    timeout=max(0.3, min(2.5, remaining)),
+                )
+                response.raise_for_status()
+                result = json.loads(response.json()["choices"][0]["message"]["content"])
+                quality = str(result.get("quality", "wrong")).lower()
+                accepted = bool(result.get("accepted")) and quality in {"exact", "acceptable", "partial"}
+                try:
+                    score = int(result.get("score", 0))
+                except (TypeError, ValueError):
+                    score = 0
+                score = max(0, min(25, score)) if accepted else 0
+                if quality == "partial":
+                    score = min(score, 10)
+                feedback = str(result.get("feedback") or "").strip()[:260]
+                return {
+                    "accepted": accepted, "quality": quality if accepted else "wrong",
+                    "score": score,
+                    "feedback": feedback or ("Đáp án được chấp nhận." if accepted else "Chưa đúng nghĩa cần tìm."),
+                    "source": label,
+                }
+            except (requests.RequestException, ValueError, TypeError, KeyError):
+                continue
+
+        exact = " ".join(answer.casefold().split()) == " ".join(expected.casefold().split())
+        return {"accepted": exact, "quality": "exact" if exact else "wrong",
+                "score": 25 if exact else 0,
+                "feedback": "Chính xác." if exact else "Chưa khớp đáp án cần ôn.",
+                "source": "local-fallback"}
     @staticmethod
     def _providers() -> list[tuple[str, str, str, str]]:
         providers = []

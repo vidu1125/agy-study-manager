@@ -101,6 +101,11 @@ def get_game_session(session_id):
     return _result(lambda: VocabGameService.get(session_id))
 
 
+@bp.route("/api/vocab/game-sessions/<session_id>/prepare-fill-blank", methods=["POST"])
+def prepare_fill_blank(session_id):
+    return _result(lambda: VocabGameService.prepare_fill_blank(session_id))
+
+
 @bp.route("/api/vocab/game-sessions/<session_id>/word-rush", methods=["POST"])
 def answer_word_rush(session_id):
     return _result(lambda: VocabGameService.word_rush_answer(session_id, request.get_json(silent=True) or {}))

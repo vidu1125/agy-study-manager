@@ -20,7 +20,7 @@ Game chụp lại hàng đợi thẻ đến hạn tại thời điểm bắt đ�
 Vì vậy một thẻ xuất hiện ở nhiều chặng không bị cộng dồn nhiều lần vào SRS. Không có
 rating Easy tự động từ game.
 
-## Cấu hình AI cho Fill in the blank
+## Cấu hình AI cho Fill in the blank và Word Rush
 
 Tạo các biến trong môi trường Railway hoặc file .env local. Không commit file .env.
 
@@ -44,6 +44,10 @@ Thứ tự fallback là GROQ_API_KEY_1 đến GROQ_API_KEY_5, sau đó OpenAI, c
 câu ví dụ có sẵn/câu dự phòng cục bộ. Vì vậy web không bị ngừng hoạt động nếu chưa thêm
 key hay provider đang lỗi.
 
+Word Rush dành tối đa 5 giây cho toàn bộ chuỗi provider khi cần chấm nghĩa gần đúng.
+Đặt `WORD_RUSH_LLM_BUDGET_SECONDS` trong khoảng 1–10 nếu cần đổi giới hạn này. Câu khớp
+đúng tuyệt đối không gọi AI nên được chấm ngay trên backend.
+
 ## Dữ liệu gửi tới provider
 
 Để tạo câu điền từ, backend chỉ gửi dữ liệu của thẻ mature:
@@ -53,8 +57,19 @@ key hay provider đang lỗi.
 - tags
 - example
 
+
+Khi Word Rush cần xét đáp án gần nghĩa, backend gửi riêng cho provider:
+
+- prompt đang hiển thị
+- đáp án chuẩn
+- câu trả lời người học nhập
+
+Câu khớp tuyệt đối được chấm ngay tại backend, không gọi provider.
 Không gửi database URL, API key, lịch sử điểm, danh tính người học, môn học hay các tài
 liệu đã tải lên. Key không được ghi vào log hoặc trả về browser.
+
+Câu Fill in the blank chỉ được tạo khi người học mở chặng 4; việc bắt đầu hoặc chơi riêng
+Word Rush không cần chờ provider AI.
 
 ## Triển khai Railway
 

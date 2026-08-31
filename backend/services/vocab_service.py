@@ -13,6 +13,7 @@ from models import (
     VocabDeckConfig,
     VocabNote,
     VocabReviewLog,
+    VocabGameSession,
     VocabStudySession,
 )
 
@@ -94,6 +95,61 @@ class VocabService:
         db.session.add_all([config, deck])
         db.session.commit()
         return VocabService._deck_summary(deck, _now(), include_config=True)
+
+    @staticmethod
+    def update_deck(deck_id: int, data: dict) -> dict:
+        deck = VocabService._get_deck(deck_id)
+        name = data.get("name", "")
+        description = data.get("description", "")
+        if not isinstance(name, str) or not isinstance(description, str):
+            raise ValueError("Tên và mô tả deck phải là văn bản")
+        name, description = name.strip(), description.strip()
+        if not name:
+            raise ValueError("Tên bộ từ vựng không được để trống")
+        if len(name) > 100:
+            raise ValueError("Tên bộ từ vựng dài tối đa 100 ký tự")
+        if len(description) > 500:
+            raise ValueError("Mô tả deck dài tối đa 500 ký tự")
+        deck.name = name
+        deck.description = description or None
+        if deck.config:
+            deck.config.name = f"Mặc định — {name}"
+        db.session.commit()
+        return VocabService._deck_summary(deck, _now(), include_config=True)
+
+    @staticmethod
+    def delete_deck(deck_id: int) -> dict:
+        """Xóa vĩnh viễn deck cùng card, log, phiên học và phiên game của nó."""
+        deck = VocabService._get_deck(deck_id)
+        config = deck.config
+        card_count = len(deck.cards)
+        note_count = len(deck.notes)
+        card_ids = [card.id for card in deck.cards]
+        try:
+            for game in VocabGameSession.query.filter_by(deck_id=deck.id).all():
+                db.session.delete(game)
+            db.session.flush()
+            if card_ids:
+                VocabReviewLog.query.filter(VocabReviewLog.card_id.in_(card_ids)).delete(
+                    synchronize_session=False
+                )
+                db.session.flush()
+            for session in VocabStudySession.query.filter_by(deck_id=deck.id).all():
+                db.session.delete(session)
+            db.session.flush()
+            db.session.delete(deck)
+            db.session.flush()
+            if config and not VocabDeck.query.filter_by(config_id=config.id).first():
+                db.session.delete(config)
+            db.session.commit()
+        except Exception:
+            db.session.rollback()
+            raise
+        return {
+            "message": "Đã xóa vĩnh viễn deck và dữ liệu Spaced Repetition liên quan",
+            "deleted_notes": note_count,
+            "deleted_cards": card_count,
+        }
 
     @staticmethod
     def update_config(deck_id: int, data: dict) -> dict:
@@ -322,6 +378,42 @@ class VocabService:
             )
         cards = query.order_by(VocabCard.created_at.desc()).all()
         return [VocabService._card_payload(card) for card in cards]
+
+    @staticmethod
+    def update_note(deck_id: int, note_id: int, data: dict) -> dict:
+        VocabService._get_deck(deck_id)
+        note = VocabNote.query.filter_by(id=note_id, deck_id=deck_id).first()
+        if not note:
+            raise LookupError("Không tìm thấy từ vựng")
+
+        fields = {
+            "word": ("Từ / cụm từ", 300, True),
+            "ipa": ("Phiên âm IPA", 300, False),
+            "meaning": ("Nghĩa", 2000, True),
+            "example": ("Ví dụ", 2000, False),
+            "tags": ("Nhãn", 500, False),
+        }
+        values = {}
+        for field, (label, limit, required) in fields.items():
+            value = data.get(field, "")
+            if value is None:
+                value = ""
+            if not isinstance(value, str):
+                raise ValueError(f"{label} phải là văn bản")
+            value = value.strip()
+            if required and not value:
+                raise ValueError(f"{label} không được để trống")
+            if len(value) > limit:
+                raise ValueError(f"{label} dài tối đa {limit} ký tự")
+            values[field] = value
+
+        note.word = values["word"]
+        note.ipa = values["ipa"] or None
+        note.meaning = values["meaning"]
+        note.example = values["example"] or None
+        note.tags = VocabService._normalise_tags(values["tags"]) or None
+        db.session.commit()
+        return note.to_dict()
 
     @staticmethod
     def delete_note(deck_id: int, note_id: int) -> None:

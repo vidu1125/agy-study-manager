@@ -32,6 +32,16 @@ def get_deck(deck_id):
     return _result(lambda: {"deck": VocabService.get_deck(deck_id)})
 
 
+@bp.route("/api/vocab/decks/<int:deck_id>", methods=["PUT"])
+def update_deck(deck_id):
+    return _result(lambda: {"deck": VocabService.update_deck(deck_id, request.get_json(silent=True) or {})})
+
+
+@bp.route("/api/vocab/decks/<int:deck_id>", methods=["DELETE"])
+def remove_deck(deck_id):
+    return _result(lambda: VocabService.delete_deck(deck_id))
+
+
 @bp.route("/api/vocab/decks/<int:deck_id>/config", methods=["PUT"])
 def update_deck_config(deck_id):
     return _result(lambda: {"config": VocabService.update_config(deck_id, request.get_json(silent=True) or {})})
@@ -56,6 +66,11 @@ def browse_cards(deck_id):
     return _result(lambda: {"cards": VocabService.browse_cards(
         deck_id, request.args.get("search"), request.args.get("state")
     )})
+
+
+@bp.route("/api/vocab/decks/<int:deck_id>/notes/<int:note_id>", methods=["PUT"])
+def update_note(deck_id, note_id):
+    return _result(lambda: {"note": VocabService.update_note(deck_id, note_id, request.get_json(silent=True) or {})})
 
 
 @bp.route("/api/vocab/decks/<int:deck_id>/notes/<int:note_id>", methods=["DELETE"])

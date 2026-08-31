@@ -13,7 +13,8 @@ let vocabState = {
   intervals: {},
   remaining: { new: 0, learning: 0, review: 0 },
   browseTimer: null,
-  answering: false
+  answering: false,
+  browseCards: []
 };
 
 let vocabImportMode = 'file';
@@ -385,9 +386,11 @@ async function showVocabBrowse() {
     const search = document.getElementById('vocabSearch').value.trim();
     const data = await vocabFetch(`/api/vocab/decks/${vocabState.selectedDeckId}/cards?search=${encodeURIComponent(search)}`);
     if (!data.cards.length) {
+      vocabState.browseCards = [];
       tbody.innerHTML = '<tr><td colspan="7" style="text-align:center; color:#64748b;">Chưa có thẻ phù hợp.</td></tr>';
       return;
     }
+    vocabState.browseCards = data.cards;
     tbody.innerHTML = data.cards.map(card => `
       <tr>
         <td><strong>${escapeVocabHtml(card.word)}</strong>${card.ipa ? `<small class="vocab-ipa">${escapeVocabHtml(card.ipa)}</small>` : ''}<div>${escapeVocabHtml(card.meaning)}</div>${card.tags ? `<small class="vocab-tags">#${escapeVocabHtml(card.tags).replace(/\s/g, ' #')}</small>` : ''}</td>
@@ -395,6 +398,7 @@ async function showVocabBrowse() {
         <td><span class="vocab-state ${card.queue === 'buried' ? 'buried' : card.state}">${card.queue === 'buried' ? 'Buried' : escapeVocabHtml(card.state)}</span>${card.is_leech ? ' <span title="Leech">🔴</span>' : ''}</td>
         <td>${card.ease_factor}%</td><td>${card.interval_days ? `${card.interval_days}d` : '—'}</td><td>${formatVocabDue(card)}</td>
         <td class="vocab-row-actions">
+          <button class="btn-sm" onclick="openEditVocabNote(${card.note_id})">Sửa</button>
           ${card.state === 'suspended' ? `<button class="btn-sm" onclick="unsuspendVocabCard(${card.id})">Bỏ ẩn</button>` : `<button class="btn-sm" onclick="suspendVocabCard(${card.id})">Tạm ẩn</button>`}
           <button class="btn-sm" onclick="resetVocabCard(${card.id})">Reset</button>
           <button class="btn-sm vocab-danger" onclick="deleteVocabNote(${card.note_id})">Xóa từ</button>
@@ -454,6 +458,87 @@ async function deleteVocabNote(noteId) {
     renderVocabDeckList();
     await showVocabBrowse();
   } catch (err) { alert(`Lỗi: ${err.message}`); }
+}
+
+function openEditVocabNote(noteId) {
+  const card = (vocabState.browseCards || []).find(item => item.note_id === noteId);
+  if (!card) {
+    alert('Không tìm thấy từ cần sửa. Hãy tải lại danh sách thẻ.');
+    return;
+  }
+  document.getElementById('editVocabNoteId').value = String(noteId);
+  document.getElementById('editVocabWord').value = card.word || '';
+  document.getElementById('editVocabIpa').value = card.ipa || '';
+  document.getElementById('editVocabMeaning').value = card.meaning || '';
+  document.getElementById('editVocabExample').value = card.example || '';
+  document.getElementById('editVocabTags').value = card.tags || '';
+  openModal('modalEditVocabNote');
+}
+
+async function saveEditedVocabNote() {
+  const noteId = Number(document.getElementById('editVocabNoteId').value);
+  const payload = {
+    word: document.getElementById('editVocabWord').value.trim(),
+    ipa: document.getElementById('editVocabIpa').value.trim(),
+    meaning: document.getElementById('editVocabMeaning').value.trim(),
+    example: document.getElementById('editVocabExample').value.trim(),
+    tags: document.getElementById('editVocabTags').value.trim(),
+  };
+  try {
+    await vocabFetch(`/api/vocab/decks/${vocabState.selectedDeckId}/notes/${noteId}`, {
+      method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload),
+    });
+    closeModal('modalEditVocabNote');
+    await showVocabBrowse();
+  } catch (err) { alert(`Không thể sửa từ: ${err.message}`); }
+}
+
+async function openEditVocabDeck() {
+  if (!vocabState.selectedDeckId) return;
+  try {
+    const data = await vocabFetch(`/api/vocab/decks/${vocabState.selectedDeckId}`);
+    vocabState.selectedDeck = data.deck;
+    document.getElementById('editVocabDeckName').value = data.deck.name || '';
+    document.getElementById('editVocabDeckDescription').value = data.deck.description || '';
+    openModal('modalEditVocabDeck');
+  } catch (err) { alert(`Không thể mở deck: ${err.message}`); }
+}
+
+async function saveEditedVocabDeck() {
+  if (!vocabState.selectedDeckId) return;
+  const payload = {
+    name: document.getElementById('editVocabDeckName').value.trim(),
+    description: document.getElementById('editVocabDeckDescription').value.trim(),
+  };
+  try {
+    const data = await vocabFetch(`/api/vocab/decks/${vocabState.selectedDeckId}`, {
+      method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload),
+    });
+    vocabState.selectedDeck = data.deck;
+    closeModal('modalEditVocabDeck');
+    await fetchVocabDecks();
+    renderVocabDeckList();
+    await showVocabBrowse();
+  } catch (err) { alert(`Không thể sửa deck: ${err.message}`); }
+}
+
+async function deleteVocabDeck() {
+  const deck = vocabState.selectedDeck;
+  if (!deck || !vocabState.selectedDeckId) return;
+  const confirmed = confirm(`Xóa vĩnh viễn deck “${deck.name}”?\n\nToàn bộ từ, thẻ, lịch sử ôn và phiên game của deck này sẽ bị xóa và không thể khôi phục.`);
+  if (!confirmed) return;
+  try {
+    const result = await vocabFetch(`/api/vocab/decks/${vocabState.selectedDeckId}`, { method: 'DELETE' });
+    vocabState = { selectedDeckId: null, selectedDeck: null, sessionId: null, currentCard: null, revealed: false, shownAt: null, intervals: {}, remaining: { new: 0, learning: 0, review: 0 }, browseTimer: null, answering: false, browseCards: [] };
+    if (typeof stopGameTimer === 'function') stopGameTimer();
+    document.getElementById('vocabDetailPanel').style.display = 'none';
+    document.getElementById('vocabStudyPanel').style.display = 'none';
+    document.getElementById('vocabGamePanel').style.display = 'none';
+    document.getElementById('vocabSearch').value = '';
+    await fetchVocabDecks();
+    renderVocabDeckList();
+    alert(`Đã xóa deck (${result.deleted_notes} từ, ${result.deleted_cards} thẻ).`);
+  } catch (err) { alert(`Không thể xóa deck: ${err.message}`); }
 }
 
 async function openVocabConfig() {

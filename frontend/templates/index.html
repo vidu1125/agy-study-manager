@@ -460,8 +460,14 @@
                 <button class="btn-sm" onclick="showVocabStats()">
                   <span class="material-symbols-outlined">insights</span> Thống kê
                 </button>
+                <button class="btn-sm" onclick="openEditVocabDeck()">
+                  <span class="material-symbols-outlined">edit</span> Sửa deck
+                </button>
                 <button class="btn-sm" onclick="openVocabConfig()">
                   <span class="material-symbols-outlined">tune</span> Cấu hình
+                </button>
+                <button class="btn-sm vocab-danger" onclick="deleteVocabDeck()">
+                  <span class="material-symbols-outlined">delete_forever</span> Xóa deck
                 </button>
               </div>
             </div>
@@ -1406,6 +1412,77 @@
         <button class="btn-primary" onclick="createVocabDeck()">
           <span class="material-symbols-outlined">create_new_folder</span> Tạo deck
         </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- 11. MODAL: SỬA DECK TỪ VỰNG -->
+  <div class="modal-overlay" id="modalEditVocabDeck">
+    <div class="modal-card" style="max-width:520px;">
+      <div class="modal-header">
+        <h3>SỬA BỘ TỪ VỰNG</h3>
+        <button class="modal-close" onclick="closeModal('modalEditVocabDeck')">&times;</button>
+      </div>
+      <div class="modal-body">
+        <div class="vocab-modal-note">
+          <span class="material-symbols-outlined">edit_note</span>
+          Việc đổi tên hoặc mô tả không làm thay đổi lịch ôn của các thẻ trong deck.
+        </div>
+        <div class="form-group">
+          <label>Tên deck *</label>
+          <input type="text" id="editVocabDeckName" class="form-control" maxlength="100" placeholder="VD: IELTS Academic — Unit 01">
+        </div>
+        <div class="form-group">
+          <label>Mô tả</label>
+          <textarea id="editVocabDeckDescription" class="form-control" rows="3" maxlength="500" placeholder="Chủ đề, nguồn học hoặc mục tiêu của bộ từ này..."></textarea>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn-secondary" onclick="closeModal('modalEditVocabDeck')">Hủy</button>
+        <button class="btn-primary" onclick="saveEditedVocabDeck()"><span class="material-symbols-outlined">save</span> Lưu thay đổi</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- 12. MODAL: SỬA TỪ VỰNG -->
+  <div class="modal-overlay" id="modalEditVocabNote">
+    <div class="modal-card" style="max-width:620px;">
+      <div class="modal-header">
+        <h3>SỬA TỪ VỰNG</h3>
+        <button class="modal-close" onclick="closeModal('modalEditVocabNote')">&times;</button>
+      </div>
+      <div class="modal-body">
+        <input type="hidden" id="editVocabNoteId">
+        <div class="vocab-modal-note">
+          <span class="material-symbols-outlined">auto_fix_high</span>
+          Nội dung của cả hai chiều thẻ sẽ được cập nhật, nhưng lịch Spaced Repetition hiện tại được giữ nguyên.
+        </div>
+        <div class="form-row">
+          <div class="form-group">
+            <label>Từ / cụm từ *</label>
+            <input type="text" id="editVocabWord" class="form-control" maxlength="300" placeholder="VD: ubiquitous">
+          </div>
+          <div class="form-group">
+            <label>Phiên âm IPA</label>
+            <input type="text" id="editVocabIpa" class="form-control" maxlength="300" placeholder="/juːˈbɪkwɪtəs/">
+          </div>
+        </div>
+        <div class="form-group">
+          <label>Nghĩa *</label>
+          <textarea id="editVocabMeaning" class="form-control" rows="3" maxlength="2000" placeholder="Nghĩa tiếng Việt, giải thích ngắn hoặc định nghĩa..."></textarea>
+        </div>
+        <div class="form-group">
+          <label>Ví dụ</label>
+          <textarea id="editVocabExample" class="form-control" rows="2" maxlength="2000" placeholder="VD: Smartphones are now ubiquitous in modern life."></textarea>
+        </div>
+        <div class="form-group">
+          <label>Nhãn</label>
+          <input type="text" id="editVocabTags" class="form-control" maxlength="500" placeholder="academic technology">
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn-secondary" onclick="closeModal('modalEditVocabNote')">Hủy</button>
+        <button class="btn-primary" onclick="saveEditedVocabNote()"><span class="material-symbols-outlined">save</span> Lưu thay đổi</button>
       </div>
     </div>
   </div>

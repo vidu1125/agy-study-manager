@@ -69,11 +69,19 @@ class VocabGameService:
             return cls._event_response(game, True, "Đã ghi nhận câu trả lời này.")
         elapsed = cls._elapsed(data.get("time_taken_ms"))
         answer = data.get("answer")
-        if cls._same(answer, item["answer"]):
-            evaluation = {"accepted": True, "quality": "exact", "score": 25,
-                          "feedback": "Chính xác tuyệt đối.", "source": "local-exact"}
-        else:
-            evaluation = VocabAiGenerator.evaluate_word_rush(item["prompt"], item["answer"], answer)
+        # Mọi câu trả lời không rỗng đều đi qua AI. Hàm evaluator có một lớp bảo vệ
+        # đáp án khớp tuyệt đối để AI không thể hạ điểm đúng do phản hồi thiếu ổn định.
+        evaluation = VocabAiGenerator.evaluate_word_rush(item["prompt"], item["answer"], answer)
+        if not evaluation.get("available", True):
+            # Provider không phản hồi không được biến thành một lượt Again oan.
+            return {
+                **cls._event_response(game, False, evaluation["feedback"]),
+                "quality": "unavailable",
+                "score_awarded": 0,
+                "evaluation_source": evaluation.get("source", "unavailable"),
+                "evaluation_analysis": evaluation.get("analysis", {}),
+                "needs_retry": True,
+            }
         correct = evaluation["accepted"]
         quality = evaluation["quality"]
         rating = "again"
@@ -87,7 +95,8 @@ class VocabGameService:
         cls._commit_event(game, correct, rating, awarded)
         message = evaluation["feedback"] if correct else f"{evaluation['feedback']} Đáp án: {item['answer']}"
         return {**cls._event_response(game, correct, message), "quality": quality,
-                "score_awarded": awarded, "evaluation_source": evaluation["source"]}
+                "score_awarded": awarded, "evaluation_source": evaluation["source"],
+                "evaluation_analysis": evaluation.get("analysis", {}), "needs_retry": False}
 
     @classmethod
     def matching_attempt(cls, session_id: str, data: dict) -> dict:
@@ -211,14 +220,21 @@ class VocabGameService:
     def _build_payload(cls, cards):
         review = [VocabService._card_payload(card) for card in cards]
         rush = []
+        # Word Rush chỉ có một hướng Việt -> Anh. Deck hai chiều có hai VocabCard cho
+        # cùng một note, nên chỉ chọn một card đến hạn (ưu tiên card vi_en) để tránh
+        # hỏi lặp lại cùng một từ trong một phiên.
+        rush_cards = {}
         for card in cards:
+            selected = rush_cards.get(card.note_id)
+            if selected is None or (card.direction == "vi_en" and selected.direction != "vi_en"):
+                rush_cards[card.note_id] = card
+        for card in rush_cards.values():
             note = card.note
-            inverse = card.direction == "vi_en"
             rush.append({
                 "id": f"rush-{card.id}", "card_id": card.id,
-                "prompt": note.word if inverse else note.meaning,
-                "prompt_label": "VIẾT TỪ TIẾNG ANH" if inverse else "VIẾT NGHĨA TIẾNG VIỆT",
-                "answer": note.meaning if inverse else note.word, "audio_text": note.word,
+                "prompt": note.meaning,
+                "prompt_label": "DỊCH VIỆT → ANH",
+                "answer": note.word, "audio_text": note.word,
             })
         pair_cards = cls._unique_notes(cards)[:6]
         tiles = []

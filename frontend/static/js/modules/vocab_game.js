@@ -2,7 +2,7 @@
 let vocabGameState = {
   sessionId: null, deck: null, stages: null, stageIndex: 0, indexes: {},
   reviewRevealed: false, selectedTile: null, matchedCards: new Set(),
-  usedHint: false, startedAt: 0, timer: null, submitting: false, mode: 'choose', wordRushLocked: false, fillPreparing: false,
+  usedHint: false, startedAt: 0, timer: null, submitting: false, mode: 'choose', wordRushLocked: false, wordRushElapsed: null, fillPreparing: false,
 };
 
 const vocabGameMeta = [
@@ -18,7 +18,30 @@ function gameHtml(value) {
 }
 
 function gameQualityLabel(quality) {
-  return ({ exact: 'Chính xác', acceptable: 'Gần đúng', partial: 'Đủ ý một phần', wrong: 'Chưa đúng' })[quality] || 'Đã chấm';
+  return ({ exact: 'Chính xác', acceptable: 'Gần đúng', partial: 'Đủ ý một phần', wrong: 'Chưa đúng', unavailable: 'Chưa chấm' })[quality] || 'Đã chấm';
+}
+
+function gameEvaluationSourceLabel(source) {
+  if ((source || '').indexOf('groq-') === 0) return 'Groq AI';
+  if (source === 'openai') return 'OpenAI';
+  if (source === 'local-empty') return 'Hệ thống';
+  return source === 'unavailable' ? 'AI chưa sẵn sàng' : 'AI';
+}
+
+function gameWordRushAnalysis(result) {
+  const analysis = result.evaluation_analysis || {};
+  const fields = [
+    ['Đã hiểu là', analysis.normalized_answer],
+    ['Nghĩa', analysis.meaning_assessment],
+    ['Chính tả / dạng từ', analysis.spelling_assessment],
+    ['Kết luận', analysis.reason],
+  ].filter(function (pair) { return pair[1]; });
+  if (!fields.length) return '';
+  const details = fields.map(function (pair) {
+    return '<p><b>' + pair[0] + ':</b> ' + gameHtml(pair[1]) + '</p>';
+  }).join('');
+  return '<div class="game-evaluation-detail"><span class="game-evaluation-source">' +
+    gameHtml(gameEvaluationSourceLabel(result.evaluation_source)) + '</span>' + details + '</div>';
 }
 
 function gameCurrentMeta() {
@@ -52,7 +75,7 @@ async function startVocabGame(deckId) {
       sessionId: data.session_id, deck: data.deck, stages: data.stages, stageIndex: 0,
       indexes: { review: 0, word_rush: 0, fill_blank: 0, multiple_choice: 0 },
       reviewRevealed: false, selectedTile: null, matchedCards: new Set(), usedHint: false,
-      startedAt: Date.now(), timer: null, submitting: false, mode: 'choose', wordRushLocked: false, fillPreparing: false,
+      startedAt: Date.now(), timer: null, submitting: false, mode: 'choose', wordRushLocked: false, wordRushElapsed: null, fillPreparing: false,
     };
     vocabState.selectedDeckId = deckId;
     vocabState.selectedDeck = data.deck;
@@ -177,6 +200,7 @@ function renderGameWordRush() {
   const items = gameCurrentItems();
   stopGameTimer();
   vocabGameState.wordRushLocked = false;
+  vocabGameState.wordRushElapsed = null;
   const index = vocabGameState.indexes.word_rush;
   const item = items[index];
   if (!item) { gameNextStage(); return; }
@@ -215,7 +239,10 @@ async function submitWordRush(event, timedOut) {
   const submit = document.getElementById('gameWordRushSubmit');
   const feedback = document.getElementById('gameFeedback');
   const card = document.querySelector('.rush-card');
-  const elapsed = Math.min(12000, Math.max(0, Date.now() - vocabGameState.startedAt));
+  const elapsed = vocabGameState.wordRushElapsed === null
+    ? Math.min(12000, Math.max(0, Date.now() - vocabGameState.startedAt))
+    : vocabGameState.wordRushElapsed;
+  vocabGameState.wordRushElapsed = elapsed;
   const answer = timedOut ? '' : (input ? input.value : '');
   if (input) input.disabled = true;
   if (submit) submit.disabled = true;
@@ -227,9 +254,17 @@ async function submitWordRush(event, timedOut) {
       body: JSON.stringify({ item_id: item.id, answer: answer, time_taken_ms: elapsed }),
     });
     gameSetMetrics(result.points, result.streak);
-    if (card) card.classList.remove('is-evaluating');
-    const scoreDetail = result.score_awarded !== undefined ? '<span class="game-score-detail">+' + result.score_awarded + ' điểm · ' + gameQualityLabel(result.quality) + '</span>' : '';
-    if (feedback) feedback.innerHTML = '<div class="game-feedback ' + (result.correct ? 'correct' : 'wrong') + '"><strong>' + gameHtml(result.message) + '</strong>' + scoreDetail + '<button class="btn-secondary" onclick="gameAdvanceWordRush()">Tiếp tục</button></div>';
+    if (card) card.classList.remove("is-evaluating");
+    const analysis = gameWordRushAnalysis(result);
+    if (result.needs_retry) {
+      if (input) input.disabled = false;
+      if (submit) submit.disabled = false;
+      vocabGameState.wordRushLocked = false;
+      if (feedback) feedback.innerHTML = "<div class='game-feedback unavailable'><strong>" + gameHtml(result.message) + "</strong>" + analysis + "<button class='btn-secondary' onclick='submitWordRush(null, false)'>Chấm lại</button></div>";
+      return;
+    }
+    const scoreDetail = result.score_awarded !== undefined ? "<span class='game-score-detail'>+" + result.score_awarded + " điểm · " + gameQualityLabel(result.quality) + "</span>" : "";
+    if (feedback) feedback.innerHTML = "<div class='game-feedback " + (result.correct ? "correct" : "wrong") + "'><strong>" + gameHtml(result.message) + "</strong>" + scoreDetail + analysis + "<button class='btn-secondary' onclick='gameAdvanceWordRush()'>Tiếp tục</button></div>";
   } catch (err) {
     alert('Không thể ghi nhận đáp án: ' + err.message);
     vocabGameState.wordRushLocked = false;

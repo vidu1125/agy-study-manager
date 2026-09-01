@@ -3,7 +3,7 @@
 Mỗi lần bấm nút play của một deck, web tạo một phiên ôn gồm:
 
 1. Lật thẻ để nhắc lại nhanh.
-2. **Word Rush**: trả lời có timer 12 giây.
+2. **Word Rush**: hiện nghĩa tiếng Việt, nhập từ hoặc cụm từ tiếng Anh trong 12 giây.
 3. **Matching Pairs**: ghép từ với nghĩa.
 4. **Fill in the blank**: dùng tối đa 25 thẻ đến hạn của phiên học, không yêu cầu interval tối thiểu.
 5. **Multiple choice**: ưu tiên thẻ mới, learning và relearning.
@@ -40,13 +40,11 @@ Tạo các biến trong môi trường Railway hoặc file .env local. Không co
     OPENAI_API_KEY=sk-...
     OPENAI_VOCAB_MODEL=gpt-4o-mini
 
-Thứ tự fallback là GROQ_API_KEY_1 đến GROQ_API_KEY_5, sau đó OpenAI, cuối cùng là
-câu ví dụ có sẵn/câu dự phòng cục bộ. Vì vậy web không bị ngừng hoạt động nếu chưa thêm
-key hay provider đang lỗi.
+Với **Fill in the blank**, thứ tự fallback là GROQ_API_KEY_1 đến GROQ_API_KEY_5, sau đó OpenAI, cuối cùng là câu ví dụ có sẵn/câu dự phòng cục bộ. Vì vậy chặng này không bị ngừng hoạt động nếu chưa thêm key hay provider đang lỗi. Word Rush dùng cùng chuỗi provider nhưng không chuyển sang chấm cục bộ cho câu trả lời không trống, để tránh chấm oan.
 
-Word Rush dành tối đa 5 giây cho toàn bộ chuỗi provider khi cần chấm nghĩa gần đúng.
-Đặt `WORD_RUSH_LLM_BUDGET_SECONDS` trong khoảng 1–10 nếu cần đổi giới hạn này. Câu khớp
-đúng tuyệt đối không gọi AI nên được chấm ngay trên backend.
+Mọi câu trả lời Word Rush không để trống đều được gửi đến LLM để đối chiếu nghĩa, chính tả và dạng từ. Backend giữ một lớp bảo vệ: đáp án khớp sau khi chuẩn hóa (không phân biệt hoa/thường, khoảng trắng hoặc dấu gạch nối) luôn nhận `exact` và 25 điểm, kể cả khi LLM trả về kết quả không nhất quán.
+
+Word Rush dành tối đa 5 giây cho toàn bộ chuỗi provider. Đặt `WORD_RUSH_LLM_BUDGET_SECONDS` trong khoảng 1–10 nếu cần đổi giới hạn này. Nếu tất cả provider không phản hồi, lượt đó **không bị tính sai, không trừ điểm và không cập nhật SRS**; người học chỉ cần bấm **Chấm lại**.
 
 ## Dữ liệu gửi tới provider
 
@@ -58,13 +56,12 @@ Word Rush dành tối đa 5 giây cho toàn bộ chuỗi provider khi cần ch�
 - example
 
 
-Khi Word Rush cần xét đáp án gần nghĩa, backend gửi riêng cho provider:
+Khi chấm Word Rush, backend chỉ gửi riêng cho provider:
 
 - prompt đang hiển thị
 - đáp án chuẩn
 - câu trả lời người học nhập
 
-Câu khớp tuyệt đối được chấm ngay tại backend, không gọi provider.
 Không gửi database URL, API key, lịch sử điểm, danh tính người học, môn học hay các tài
 liệu đã tải lên. Key không được ghi vào log hoặc trả về browser.
 
@@ -79,7 +76,7 @@ Word Rush không cần chờ provider AI.
 4. Mở một deck có ít nhất một thẻ đến hạn để thấy chặng Fill in the blank.
 
 Không có key AI vẫn deploy bình thường. Chặng Fill in the blank hiện câu local fallback,
-giúp luồng ôn tập không bị gián đoạn.
+giúp luồng ôn tập không bị gián đoạn. Riêng Word Rush cần ít nhất một `GROQ_API_KEY_*` hoặc `OPENAI_API_KEY` để chấm đáp án không trống; chưa có key thì web hiển thị nút **Chấm lại** và không ghi một lượt ôn không công bằng.
 
 ## Lưu ý chất lượng câu
 
